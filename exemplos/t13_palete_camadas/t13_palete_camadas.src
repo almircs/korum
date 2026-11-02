@@ -1,0 +1,33 @@
+DEF t13_palete_camadas()
+  ; 4 peças da mesa formam 2 camadas de 2 peças no palete.
+  ; A altura de descida é calculada pela camada.
+  DECL INT camada, col, n
+  DECL REAL desce
+  DECL E6POS PEGA, SOLTA
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  n = 0
+  FOR camada = 1 TO 2
+    FOR col = 1 TO 2
+      n = n + 1
+      PEGA = MESA_1
+      PEGA.Y = MESA_1.Y + (n - 1) * 100
+      SOLTA = PALETE_1
+      SOLTA.X = PALETE_1.X + (col - 1) * 100
+      desce = 170 - (camada - 1) * 50
+      PTP PEGA
+      LIN_REL {Z -145}
+      $OUT[1] = TRUE
+      WAIT SEC 0.3
+      LIN_REL {Z 145}
+      PTP SOLTA
+      LIN_REL {Z -desce}
+      $OUT[1] = FALSE
+      WAIT SEC 0.2
+      LIN_REL {Z desce}
+    ENDFOR
+  ENDFOR
+  PTP HOME
+END

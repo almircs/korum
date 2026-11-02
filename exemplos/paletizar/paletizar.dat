@@ -1,0 +1,5 @@
+DEFDAT paletizar
+  ; pontos de aproximação (Z 320) da 1a peça e da 1a posição do palete
+  DECL E6POS MESA_1 = {X 500, Y -150, Z 320, A 0, B 90, C 0}
+  DECL E6POS PALETE_1 = {X 200, Y -550, Z 320, A 0, B 90, C 0}
+ENDDAT

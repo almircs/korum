@@ -1,0 +1,23 @@
+DEF t10_vetores()
+  ; Um vetor guarda 5 alturas; o robô toca cada ponto e sobe de novo.
+  DECL REAL alt[5]
+  DECL INT i
+  DECL E6POS P
+  INI
+  alt[1] = 250
+  alt[2] = 350
+  alt[3] = 450
+  alt[4] = 350
+  alt[5] = 250
+  $VEL.CP = 0.4
+  PTP HOME
+  P = LINHA
+  FOR i = 1 TO 5
+    P.Y = LINHA.Y + (i - 1) * 100
+    P.Z = alt[i]
+    PTP P
+    LIN_REL {Z -80}
+    LIN_REL {Z 80}
+  ENDFOR
+  PTP HOME
+END

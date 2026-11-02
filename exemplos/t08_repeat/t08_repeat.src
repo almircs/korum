@@ -1,0 +1,14 @@
+DEF t08_repeat()
+  ; Vai e volta até IN 2 ser ativada ou completar 5 ciclos.
+  ; A condição é testada no FIM de cada ciclo.
+  DECL INT ciclos
+  INI
+  ciclos = 0
+  PTP HOME
+  REPEAT
+    PTP PA
+    PTP PB
+    ciclos = ciclos + 1
+  UNTIL $IN[2] OR (ciclos >= 5)
+  PTP HOME
+END

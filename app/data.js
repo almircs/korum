@@ -484,3 +484,632 @@ const EXERCISES = [
     { txt: "Sem colisões e sem erros", dica: "P_PEGA está abaixo do tampo da mesa? A peça tem centro em Z 175.", f: c => c.result === "done" },
     { txt: "A garra estava aberta antes de descer até a peça", dica: "Antes de LIN P_PEGA a garra precisa estar aberta ($OUT[1] = FALSE).", f: c => { const g = c.events.filter(e => e.t === "grip"); return g.some(e => e.ok); } }] },
 ];
+
+// ================== Pacote de programas de teste (v1.1) ==================
+Object.assign(SCENES, {
+  soldagem: { nome: "Soldagem (mesa + peça)", objetos: [
+    { tipo: "mesa", nome: "Mesa A", x: 575, y: 0, w: 350, d: 500, h: 150 },
+    { tipo: "bloco", nome: "Peça a soldar", x: 575, y: 0, w: 200, d: 150, h: 230 }], pecas: [] },
+  despalete: { nome: "Despaletização (palete + esteira)", objetos: [
+    { tipo: "palete", nome: "Palete", x: 250, y: -500, w: 320, d: 320, h: 120 },
+    { tipo: "esteira", nome: "Esteira", x: 575, y: 150, w: 300, d: 440, h: 150 }],
+    pecas: [[200, -550], [300, -550], [200, -450], [300, -450]] },
+  inspecao: { nome: "Inspeção (mesa + câmera + esteira)", objetos: [
+    { tipo: "mesa", nome: "Mesa A", x: 575, y: 0, w: 350, d: 500, h: 150 },
+    { tipo: "esteira", nome: "Esteira B", x: 300, y: -525, w: 440, d: 310, h: 150 },
+    { tipo: "bloco", nome: "Câmera", x: 250, y: 380, w: 100, d: 100, h: 600 }], pecas: [[575, 0]] },
+});
+
+const P = (n, x, y, z, b = 90) => `  DECL E6POS ${n} = {X ${x}, Y ${y}, Z ${z}, A 0, B ${b}, C 0}`;
+EXAMPLES.push(
+{ id: "b01", cat: "Movimentação básica", scene: "vazia", title: "T01 · Eixo por eixo (E6AXIS)", src:
+`DEF t01_eixos()
+  ; Move um eixo de cada vez com agregados parciais de E6AXIS.
+  ; Observe no painel da direita qual eixo muda em cada linha.
+  DECL INT i
+  INI
+  PTP HOME
+  PTP {A1 60}
+  PTP {A1 -60}
+  PTP {A1 0}
+  PTP {A2 -60}                 ; braço inclina para a frente
+  PTP {A3 60}                  ; cotovelo
+  PTP {A2 -90, A3 90}
+  PTP {A5 60}                  ; dobra o punho
+  PTP {A4 90}                  ; gira o antebraço
+  PTP {A6 180}                 ; gira a flange
+  PTP {A4 0, A5 0, A6 0}
+  FOR i = 1 TO 4               ; giro relativo da base: 4 x 30 graus
+    PTP_REL {A1 30}
+  ENDFOR
+  PTP HOME
+END`, dat: `DEFDAT t01_eixos\nENDDAT` },
+
+{ id: "b02", cat: "Movimentação básica", scene: "vazia", title: "T02 · Retângulo calculado com variáveis", src:
+`DEF t02_retangulo()
+  ; Um único ponto ensinado (CANTO); os outros são calculados.
+  DECL E6POS P
+  DECL REAL larg, comp
+  INI
+  larg = 300
+  comp = 200
+  $VEL.CP = 0.25
+  PTP HOME
+  P = CANTO
+  PTP P
+  P.Y = P.Y + larg
+  LIN P
+  P.X = P.X + comp
+  LIN P
+  P.Y = P.Y - larg
+  LIN P
+  P.X = P.X - comp
+  LIN P
+  PTP HOME
+END`, dat: `DEFDAT t02_retangulo\n${P("CANTO", 450, -150, 350)}\nENDDAT` },
+
+{ id: "b03", cat: "Movimentação básica", scene: "vazia", title: "T03 · Velocidades ($VEL.CP e eixos)", src:
+`DEF t03_velocidades()
+  ; O mesmo trajeto LIN com 3 velocidades guardadas num vetor,
+  ; depois um PTP com velocidade de eixos reduzida.
+  DECL INT i
+  DECL REAL v[3]
+  INI
+  v[1] = 0.1
+  v[2] = 0.3
+  v[3] = 0.8
+  PTP HOME
+  FOR i = 1 TO 3
+    $VEL.CP = v[i]
+    PTP PA
+    LIN PB
+    LIN PA
+  ENDFOR
+  BAS(#PTP_PARAMS, 30)         ; eixos a 30 %
+  PTP PB
+  BAS(#PTP_PARAMS, 100)
+  PTP HOME
+END`, dat: `DEFDAT t03_velocidades\n${P("PA", 500, -250, 450)}\n${P("PB", 500, 250, 450)}\nENDDAT` },
+
+{ id: "b04", cat: "Movimentação básica", scene: "vazia", title: "T04 · $BASE e $TOOL", src:
+`DEF t04_base_tool()
+  ; O mesmo subprograma desenha um quadrado em duas BASES diferentes:
+  ; os pontos são relativos à base ativa.
+  INI
+  $VEL.CP = 0.3
+  PTP HOME
+  $BASE = {X 400, Y -250, Z 300, A 0, B 0, C 0}
+  quadrado()
+  $BASE = {X 400, Y 100, Z 300, A 30, B 0, C 0}   ; base girada 30 graus
+  quadrado()
+  $BASE = $NULLFRAME
+  ; Mesmo destino com duas ferramentas: veja o robô mudar de pose
+  $TOOL = $NULLFRAME           ; TCP no centro da flange
+  PTP {X 500, Y 0, Z 500, A 0, B 90, C 0}
+  $TOOL = {X 110, Y 0, Z 0, A 0, B 0, C 0}        ; TCP na ponta da garra
+  PTP {X 500, Y 0, Z 500, A 0, B 90, C 0}
+  PTP HOME
+END
+
+DEF quadrado()
+  PTP {X 0, Y 0, Z 100, A 0, B 90, C 0}
+  LIN {X 0, Y 0, Z 0}
+  LIN {X 150, Y 0, Z 0}
+  LIN {X 150, Y 150, Z 0}
+  LIN {X 0, Y 150, Z 0}
+  LIN {X 0, Y 0, Z 0}
+  LIN {X 0, Y 0, Z 100}
+END`, dat: `DEFDAT t04_base_tool\nENDDAT` },
+
+{ id: "b05", cat: "Movimentação básica", scene: "vazia", title: "T05 · Hélice com SIN e COS", src:
+`DEF t05_helice()
+  ; 3 voltas de raio 120 mm subindo 40 mm por volta (72 pontos LIN)
+  DECL INT i
+  DECL REAL ang, raio
+  DECL E6POS P
+  INI
+  raio = 120
+  $VEL.CP = 0.4
+  PTP HOME
+  P = CENTRO
+  P.X = CENTRO.X + raio
+  PTP P
+  FOR i = 1 TO 72
+    ang = i * 15
+    P.X = CENTRO.X + raio * COS(ang)
+    P.Y = CENTRO.Y + raio * SIN(ang)
+    P.Z = CENTRO.Z + i * 40 / 24
+    LIN P
+  ENDFOR
+  PTP HOME
+END`, dat: `DEFDAT t05_helice\n${P("CENTRO", 550, 0, 300)}\nENDDAT` },
+
+{ id: "i01", cat: "Integração com sensores", scene: "vazia", title: "T06 · Sequência de luzes (WHILE e FOR)", src:
+`DEF t06_luzes()
+  ; Acende as saídas 2 a 8 em sequência, 3 voltas. Observe o painel de E/S.
+  DECL INT n, volta
+  INI
+  PTP HOME
+  volta = 0
+  WHILE volta < 3
+    FOR n = 2 TO 8
+      $OUT[n] = TRUE
+      WAIT SEC 0.15
+      $OUT[n] = FALSE
+    ENDFOR
+    volta = volta + 1
+  ENDWHILE
+  FOR n = 2 TO 8
+    $OUT[n] = TRUE
+  ENDFOR
+  WAIT SEC 1
+  FOR n = 2 TO 8
+    $OUT[n] = FALSE
+  ENDFOR
+END`, dat: `DEFDAT t06_luzes\nENDDAT` },
+
+{ id: "i02", cat: "Integração com sensores", scene: "vazia", title: "T07 · Seleção de programa pelo CLP (SWITCH)", src:
+`DEF t07_selecao()
+  ; As entradas 1 a 3 formam o número do programa (1, 2 ou 3).
+  ; Ligue as entradas e depois IN 8 (partida). Desligue IN 8 para o próximo ciclo.
+  ; IN 7 encerra. $OUT[2] = robô pronto; $OUT[8] = número inválido.
+  DECL INT prog
+  INI
+  PTP HOME
+  LOOP
+    $OUT[2] = TRUE
+    WAIT FOR $IN[8] OR $IN[7]
+    IF $IN[7] THEN
+      EXIT
+    ENDIF
+    $OUT[2] = FALSE
+    prog = 0
+    IF $IN[1] THEN
+      prog = prog + 1
+    ENDIF
+    IF $IN[2] THEN
+      prog = prog + 2
+    ENDIF
+    IF $IN[3] THEN
+      prog = prog + 4
+    ENDIF
+    SWITCH prog
+    CASE 1
+      PTP POS_1
+    CASE 2
+      PTP POS_2
+    CASE 3
+      PTP POS_3
+    DEFAULT
+      $OUT[8] = TRUE
+      WAIT SEC 1
+      $OUT[8] = FALSE
+    ENDSWITCH
+    PTP HOME
+    WAIT FOR NOT $IN[8]
+  ENDLOOP
+  $OUT[2] = FALSE
+  PTP HOME
+END`, dat: `DEFDAT t07_selecao\n${P("POS_1", 500, -300, 400)}\n${P("POS_2", 600, 0, 400)}\n${P("POS_3", 500, 300, 400)}\nENDDAT` },
+
+{ id: "i03", cat: "Integração com sensores", scene: "vazia", title: "T08 · Ciclos até o operador parar (REPEAT)", src:
+`DEF t08_repeat()
+  ; Vai e volta até IN 2 ser ativada ou completar 5 ciclos.
+  ; A condição é testada no FIM de cada ciclo.
+  DECL INT ciclos
+  INI
+  ciclos = 0
+  PTP HOME
+  REPEAT
+    PTP PA
+    PTP PB
+    ciclos = ciclos + 1
+  UNTIL $IN[2] OR (ciclos >= 5)
+  PTP HOME
+END`, dat: `DEFDAT t08_repeat\n${P("PA", 450, -300, 450)}\n${P("PB", 450, 300, 450)}\nENDDAT` },
+
+{ id: "i04", cat: "Integração com sensores", scene: "vazia", title: "T09 · Interrupção de segurança (INTERRUPT)", src:
+`DEF t09_interrupt()
+  ; Uma interrupção vigia IN 5 (simula uma cortina de luz).
+  ; Ative IN 5 durante o ciclo: parada() sinaliza o alarme e espera IN 5 desligar.
+  DECL INT i
+  INI
+  INTERRUPT DECL 10 WHEN $IN[5] DO parada()
+  INTERRUPT ON 10
+  PTP HOME
+  FOR i = 1 TO 6
+    PTP PA
+    LIN PB
+  ENDFOR
+  INTERRUPT OFF 10
+  PTP HOME
+END
+
+DEF parada()
+  $OUT[8] = TRUE
+  WAIT FOR NOT $IN[5]
+  $OUT[8] = FALSE
+END`, dat: `DEFDAT t09_interrupt\n${P("PA", 500, -250, 400)}\n${P("PB", 500, 250, 400)}\nENDDAT` },
+
+{ id: "i05", cat: "Movimentação básica", scene: "vazia", title: "T10 · Vetor de alturas", src:
+`DEF t10_vetores()
+  ; Um vetor guarda 5 alturas; o robô toca cada ponto e sobe de novo.
+  DECL REAL alt[5]
+  DECL INT i
+  DECL E6POS P
+  INI
+  alt[1] = 250
+  alt[2] = 350
+  alt[3] = 450
+  alt[4] = 350
+  alt[5] = 250
+  $VEL.CP = 0.4
+  PTP HOME
+  P = LINHA
+  FOR i = 1 TO 5
+    P.Y = LINHA.Y + (i - 1) * 100
+    P.Z = alt[i]
+    PTP P
+    LIN_REL {Z -80}
+    LIN_REL {Z 80}
+  ENDFOR
+  PTP HOME
+END`, dat: `DEFDAT t10_vetores\n${P("LINHA", 450, -200, 300)}\nENDDAT` },
+
+{ id: "a01", cat: "Soldagem", scene: "soldagem", title: "T11 · Cordão de solda em volta da peça", src:
+`DEF t11_soldagem()
+  ; Cordão de filete em volta da base da peça e uma costura no topo
+  ; com canto arredondado (CIRC). $OUT[3] = tocha ligada.
+  ; Numa célula real a tocha trabalha inclinada ~45 graus; aqui ela fica vertical.
+  INI
+  PTP HOME
+  PTP S_APROX
+  $VEL.CP = 0.3
+  LIN S1
+  $OUT[3] = TRUE               ; abre o arco
+  WAIT SEC 0.3
+  $VEL.CP = 0.08               ; velocidade de soldagem (~4,8 m/min)
+  LIN S2
+  LIN S3
+  LIN S4
+  LIN S1
+  $OUT[3] = FALSE              ; fecha o arco
+  $VEL.CP = 0.3
+  LIN S_APROX
+  PTP T_APROX
+  LIN T1
+  $OUT[3] = TRUE
+  $VEL.CP = 0.08
+  LIN T2
+  CIRC T_AUX, T3
+  LIN T4
+  $OUT[3] = FALSE
+  $VEL.CP = 0.3
+  LIN_REL {Z 100}
+  PTP HOME
+END`, dat: `DEFDAT t11_soldagem
+${P("S_APROX", 463, -87, 260)}
+${P("S1", 463, -87, 160)}
+${P("S2", 687, -87, 160)}
+${P("S3", 687, 87, 160)}
+${P("S4", 463, 87, 160)}
+${P("T_APROX", 500, -50, 320)}
+${P("T1", 500, -50, 235)}
+${P("T2", 620, -50, 235)}
+${P("T_AUX", 641.2, -41.2, 235)}
+${P("T3", 650, -20, 235)}
+${P("T4", 650, 50, 235)}
+ENDDAT` },
+
+{ id: "a02", cat: "Operações de montagem", scene: "pick", title: "T12 · Aplicação de cola (contorno com cantos arredondados)", src:
+`DEF t12_cola()
+  ; Contorno retangular 210 x 300 mm com cantos de raio 40 mm (4 LIN + 4 CIRC)
+  ; $OUT[4] = válvula de cola. Bico 10 mm acima da mesa.
+  INI
+  PTP HOME
+  PTP G_APROX
+  $VEL.CP = 0.3
+  LIN G1
+  $OUT[4] = TRUE
+  $VEL.CP = 0.12
+  LIN G2
+  CIRC G2A, G3
+  LIN G4
+  CIRC G4A, G5
+  LIN G6
+  CIRC G6A, G7
+  LIN G8
+  CIRC G8A, G1
+  $OUT[4] = FALSE
+  $VEL.CP = 0.3
+  LIN G_APROX
+  PTP HOME
+END`, dat: `DEFDAT t12_cola
+${P("G_APROX", 510, -150, 260)}
+${P("G1", 510, -150, 160)}
+${P("G2", 640, -150, 160)}
+${P("G2A", 668.3, -138.3, 160)}
+${P("G3", 680, -110, 160)}
+${P("G4", 680, 110, 160)}
+${P("G4A", 668.3, 138.3, 160)}
+${P("G5", 640, 150, 160)}
+${P("G6", 510, 150, 160)}
+${P("G6A", 481.7, 138.3, 160)}
+${P("G7", 470, 110, 160)}
+${P("G8", 470, -110, 160)}
+${P("G8A", 481.7, -138.3, 160)}
+ENDDAT` },
+
+{ id: "a03", cat: "Paletização", scene: "palete", title: "T13 · Paletização em 2 camadas", src:
+`DEF t13_palete_camadas()
+  ; 4 peças da mesa formam 2 camadas de 2 peças no palete.
+  ; A altura de descida é calculada pela camada.
+  DECL INT camada, col, n
+  DECL REAL desce
+  DECL E6POS PEGA, SOLTA
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  n = 0
+  FOR camada = 1 TO 2
+    FOR col = 1 TO 2
+      n = n + 1
+      PEGA = MESA_1
+      PEGA.Y = MESA_1.Y + (n - 1) * 100
+      SOLTA = PALETE_1
+      SOLTA.X = PALETE_1.X + (col - 1) * 100
+      desce = 170 - (camada - 1) * 50
+      PTP PEGA
+      LIN_REL {Z -145}
+      $OUT[1] = TRUE
+      WAIT SEC 0.3
+      LIN_REL {Z 145}
+      PTP SOLTA
+      LIN_REL {Z -desce}
+      $OUT[1] = FALSE
+      WAIT SEC 0.2
+      LIN_REL {Z desce}
+    ENDFOR
+  ENDFOR
+  PTP HOME
+END`, dat: `DEFDAT t13_palete_camadas\n${P("MESA_1", 500, -150, 320)}\n${P("PALETE_1", 200, -550, 320)}\nENDDAT` },
+
+{ id: "a04", cat: "Paletização", scene: "despalete", title: "T14 · Despaletização para a esteira", src:
+`DEF t14_despaletizar()
+  ; Retira as 4 peças do palete (2 x 2) e coloca em fila na esteira.
+  DECL INT lin, col, n
+  DECL E6POS PEGA, SOLTA
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  n = 0
+  FOR lin = 1 TO 2
+    FOR col = 1 TO 2
+      n = n + 1
+      PEGA = PALETE_1
+      PEGA.X = PALETE_1.X + (col - 1) * 100
+      PEGA.Y = PALETE_1.Y + (lin - 1) * 100
+      SOLTA = ESTEIRA_1
+      SOLTA.Y = ESTEIRA_1.Y + (n - 1) * 90
+      PTP PEGA
+      LIN_REL {Z -175}
+      $OUT[1] = TRUE
+      WAIT SEC 0.3
+      LIN_REL {Z 175}
+      PTP SOLTA
+      LIN_REL {Z -140}
+      $OUT[1] = FALSE
+      WAIT SEC 0.2
+      LIN_REL {Z 140}
+    ENDFOR
+  ENDFOR
+  PTP HOME
+END`, dat: `DEFDAT t14_despaletizar\n${P("PALETE_1", 200, -550, 320)}\n${P("ESTEIRA_1", 575, 0, 320)}\nENDDAT` },
+
+{ id: "a05", cat: "Alimentação de máquinas", scene: "maquina", title: "T15 · Alimentação de máquina CNC", src:
+`DEF t15_maquina()
+  ; Para cada peça: pega na mesa, coloca no dispositivo da máquina,
+  ; sinaliza o ciclo ($OUT[4]), espera a usinagem, retira e guarda na área de prontas.
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  pegar(BRUTA_1, 145)
+  maquinar()
+  soltar(PRONTA_1, 140)
+  pegar(BRUTA_2, 145)
+  maquinar()
+  soltar(PRONTA_2, 140)
+  PTP HOME
+END
+
+DEF maquinar()
+  soltar(DISPOSITIVO, 135)
+  PTP SEGURA                   ; fora da área da máquina
+  $OUT[4] = TRUE               ; inicia o ciclo da máquina
+  WAIT SEC 1.5                 ; tempo de usinagem (simulado)
+  $OUT[4] = FALSE
+  pegar(DISPOSITIVO, 135)
+END
+
+DEF pegar(alvo:IN, desce:IN)
+  PTP alvo
+  LIN_REL {Z -desce}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z desce}
+END
+
+DEF soltar(alvo:IN, desce:IN)
+  PTP alvo
+  LIN_REL {Z -desce}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z desce}
+END`, dat: `DEFDAT t15_maquina
+${P("BRUTA_1", 575, 0, 320)}
+${P("BRUTA_2", 575, 120, 320)}
+${P("DISPOSITIVO", 0, 420, 320)}
+${P("SEGURA", 350, 250, 450)}
+${P("PRONTA_1", 500, -150, 320)}
+${P("PRONTA_2", 620, -150, 320)}
+ENDDAT` },
+
+{ id: "a06", cat: "Inspeção", scene: "inspecao", title: "T16 · Inspeção com câmera e refugo", src:
+`DEF t16_inspecao()
+  ; Pega a peça, mostra à câmera em 3 posições (giro de 90 graus)
+  ; e decide: aprovada vai para a esteira; reprovada volta para a área de refugo.
+  ; Ative IN 6 antes da inspeção para simular uma peça REPROVADA.
+  DECL INT k
+  INI
+  $VEL.CP = 0.4
+  PTP HOME
+  $OUT[1] = FALSE
+  PTP PECA
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP CAMERA
+  FOR k = 1 TO 3
+    $OUT[5] = TRUE             ; dispara a câmera
+    WAIT SEC 0.4
+    $OUT[5] = FALSE
+    IF k < 3 THEN
+      LIN_REL {A 90}           ; gira a peça 90 graus
+    ENDIF
+  ENDFOR
+  IF $IN[6] THEN
+    $OUT[8] = TRUE             ; alarme de refugo
+    PTP REFUGO
+  ELSE
+    PTP ESTEIRA
+  ENDIF
+  LIN_REL {Z -140}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z 140}
+  $OUT[8] = FALSE
+  PTP HOME
+END`, dat: `DEFDAT t16_inspecao
+${P("PECA", 575, 0, 320)}
+${P("CAMERA", 250, 270, 450)}
+${P("ESTEIRA", 300, -525, 320)}
+${P("REFUGO", 500, -170, 320)}
+ENDDAT` },
+
+{ id: "a07", cat: "Operações de montagem", scene: "maquina", title: "T17 · Montagem por empilhamento (encaixe lento)", src:
+`DEF t17_montagem()
+  ; Encaixa a peça 2 sobre a peça 1: aproximação rápida,
+  ; últimos milímetros bem devagar (como num encaixe com folga pequena).
+  INI
+  PTP HOME
+  $OUT[1] = FALSE
+  PTP P2_APROX
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP P1_APROX
+  $VEL.CP = 0.3
+  LIN_REL {Z -60}              ; aproximação rápida
+  $VEL.CP = 0.01               ; 10 mm/s no encaixe
+  LIN_REL {Z -34}
+  $OUT[1] = FALSE
+  WAIT SEC 0.5
+  $VEL.CP = 0.3
+  LIN_REL {Z 94}
+  PTP HOME
+END`, dat: `DEFDAT t17_montagem\n${P("P1_APROX", 575, 0, 320)}\n${P("P2_APROX", 575, 120, 320)}\nENDDAT` },
+
+{ id: "a08", cat: "Aplicações avançadas", scene: "pick", title: "T18 · Célula completa com handshake de CLP", src:
+`DEF t18_celula()
+  ; Programa de célula: o "CLP" escolhe a tarefa e dá a partida.
+  ;   IN 1 = tarefa 1 (mesa -> esteira)   IN 2 = tarefa 2 (esteira -> mesa)
+  ;   IN 8 = partida (desligue após cada ciclo)   IN 7 = encerrar
+  ;   OUT 2 = pronto   OUT 3 = em ciclo   OUT 4 = ciclo concluído   OUT 8 = falha
+  DECL INT tarefa
+  INI
+  PTP HOME
+  $OUT[1] = FALSE
+  LOOP
+    $OUT[2] = TRUE
+    WAIT FOR $IN[8] OR $IN[7]
+    IF $IN[7] THEN
+      EXIT
+    ENDIF
+    $OUT[2] = FALSE
+    $OUT[4] = FALSE
+    $OUT[3] = TRUE
+    tarefa = 0
+    IF $IN[1] THEN
+      tarefa = 1
+    ENDIF
+    IF $IN[2] THEN
+      tarefa = tarefa + 2
+    ENDIF
+    SWITCH tarefa
+    CASE 1
+      transferir(MESA, ESTEIRA)
+      $OUT[4] = TRUE
+    CASE 2
+      transferir(ESTEIRA, MESA)
+      $OUT[4] = TRUE
+    DEFAULT
+      $OUT[8] = TRUE           ; nenhuma ou duas tarefas selecionadas
+      WAIT SEC 1
+      $OUT[8] = FALSE
+    ENDSWITCH
+    $OUT[3] = FALSE
+    WAIT FOR NOT $IN[8]
+  ENDLOOP
+  $OUT[2] = FALSE
+  PTP HOME
+END
+
+DEF transferir(de:IN, para:IN)
+  PTP de
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP para
+  LIN_REL {Z -142}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z 142}
+  PTP HOME
+END`, dat: `DEFDAT t18_celula\n${P("MESA", 575, 0, 320)}\n${P("ESTEIRA", 300, -525, 320)}\nENDDAT` },
+
+{ id: "d01", cat: "Aplicações avançadas", scene: "vazia", title: "T19 · Diagnóstico: singularidade de punho", src:
+`DEF t19_singularidade()
+  ; ERRO DE PROPÓSITO. O LIN atravessa a frente do robô com a ferramenta
+  ; apontando para a frente (B 0): no meio do caminho A5 passa por 0 grau
+  ; e A4/A6 precisariam girar quase 180 graus de uma vez.
+  ; Soluções (teste uma de cada vez):
+  ;   1) troque o LIN por PTP;
+  ;   2) incline a ferramenta: B 15 nos dois pontos;
+  ;   3) mude a altura: Z 700 nos dois pontos.
+  INI
+  PTP HOME
+  PTP S_ESQ
+  LIN S_DIR
+  PTP HOME
+END`, dat: `DEFDAT t19_singularidade\n${P("S_ESQ", 635, -250, 885, 0)}\n${P("S_DIR", 635, 250, 885, 0)}\nENDDAT` },
+
+{ id: "d02", cat: "Aplicações avançadas", scene: "vazia", title: "T20 · Diagnóstico: limites e alcance", src:
+`DEF t20_limites()
+  ; ERROS DE PROPÓSITO, um por vez. Execute, leia o console, corrija e execute de novo.
+  ;   1) A1 = 175 passa do limite de software (+170).
+  ;   2) LONGE está fora do alcance do braço.
+  ;   3) ABAIXO fica abaixo do piso (Z negativo): colisão.
+  INI
+  PTP HOME
+  PTP {A1 175}
+  PTP LONGE
+  PTP ABAIXO
+  PTP HOME
+END`, dat: `DEFDAT t20_limites\n${P("LONGE", 1100, 0, 600)}\n${P("ABAIXO", 600, 0, -30)}\nENDDAT` },
+);

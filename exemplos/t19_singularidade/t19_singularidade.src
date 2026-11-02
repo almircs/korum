@@ -1,0 +1,14 @@
+DEF t19_singularidade()
+  ; ERRO DE PROPÓSITO. O LIN atravessa a frente do robô com a ferramenta
+  ; apontando para a frente (B 0): no meio do caminho A5 passa por 0 grau
+  ; e A4/A6 precisariam girar quase 180 graus de uma vez.
+  ; Soluções (teste uma de cada vez):
+  ;   1) troque o LIN por PTP;
+  ;   2) incline a ferramenta: B 15 nos dois pontos;
+  ;   3) mude a altura: Z 700 nos dois pontos.
+  INI
+  PTP HOME
+  PTP S_ESQ
+  LIN S_DIR
+  PTP HOME
+END

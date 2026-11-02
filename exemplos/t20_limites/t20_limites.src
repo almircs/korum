@@ -1,0 +1,12 @@
+DEF t20_limites()
+  ; ERROS DE PROPÓSITO, um por vez. Execute, leia o console, corrija e execute de novo.
+  ;   1) A1 = 175 passa do limite de software (+170).
+  ;   2) LONGE está fora do alcance do braço.
+  ;   3) ABAIXO fica abaixo do piso (Z negativo): colisão.
+  INI
+  PTP HOME
+  PTP {A1 175}
+  PTP LONGE
+  PTP ABAIXO
+  PTP HOME
+END

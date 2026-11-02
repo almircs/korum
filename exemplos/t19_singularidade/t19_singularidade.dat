@@ -1,0 +1,4 @@
+DEFDAT t19_singularidade
+  DECL E6POS S_ESQ = {X 635, Y -250, Z 885, A 0, B 0, C 0}
+  DECL E6POS S_DIR = {X 635, Y 250, Z 885, A 0, B 0, C 0}
+ENDDAT

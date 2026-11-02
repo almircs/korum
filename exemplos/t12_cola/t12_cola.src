@@ -1,0 +1,23 @@
+DEF t12_cola()
+  ; Contorno retangular 210 x 300 mm com cantos de raio 40 mm (4 LIN + 4 CIRC)
+  ; $OUT[4] = válvula de cola. Bico 10 mm acima da mesa.
+  INI
+  PTP HOME
+  PTP G_APROX
+  $VEL.CP = 0.3
+  LIN G1
+  $OUT[4] = TRUE
+  $VEL.CP = 0.12
+  LIN G2
+  CIRC G2A, G3
+  LIN G4
+  CIRC G4A, G5
+  LIN G6
+  CIRC G6A, G7
+  LIN G8
+  CIRC G8A, G1
+  $OUT[4] = FALSE
+  $VEL.CP = 0.3
+  LIN G_APROX
+  PTP HOME
+END

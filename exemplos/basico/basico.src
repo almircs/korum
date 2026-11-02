@@ -1,0 +1,11 @@
+DEF basico()
+  ; PTP: cada eixo vai pelo caminho mais rápido (trajetória curva)
+  ; LIN: a ferramenta segue uma linha reta no espaço
+  ; Ative "Trajetória" no visualizador para comparar.
+  INI
+  PTP HOME
+  PTP P1
+  LIN P2
+  PTP P1                     ; mesma distância, caminho diferente
+  PTP HOME
+END

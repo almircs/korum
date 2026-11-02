@@ -1,0 +1,31 @@
+DEF t11_soldagem()
+  ; Cordão de filete em volta da base da peça e uma costura no topo
+  ; com canto arredondado (CIRC). $OUT[3] = tocha ligada.
+  ; Numa célula real a tocha trabalha inclinada ~45 graus; aqui ela fica vertical.
+  INI
+  PTP HOME
+  PTP S_APROX
+  $VEL.CP = 0.3
+  LIN S1
+  $OUT[3] = TRUE               ; abre o arco
+  WAIT SEC 0.3
+  $VEL.CP = 0.08               ; velocidade de soldagem (~4,8 m/min)
+  LIN S2
+  LIN S3
+  LIN S4
+  LIN S1
+  $OUT[3] = FALSE              ; fecha o arco
+  $VEL.CP = 0.3
+  LIN S_APROX
+  PTP T_APROX
+  LIN T1
+  $OUT[3] = TRUE
+  $VEL.CP = 0.08
+  LIN T2
+  CIRC T_AUX, T3
+  LIN T4
+  $OUT[3] = FALSE
+  $VEL.CP = 0.3
+  LIN_REL {Z 100}
+  PTP HOME
+END

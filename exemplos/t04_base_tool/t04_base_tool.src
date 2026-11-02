@@ -1,0 +1,28 @@
+DEF t04_base_tool()
+  ; O mesmo subprograma desenha um quadrado em duas BASES diferentes:
+  ; os pontos são relativos à base ativa.
+  INI
+  $VEL.CP = 0.3
+  PTP HOME
+  $BASE = {X 400, Y -250, Z 300, A 0, B 0, C 0}
+  quadrado()
+  $BASE = {X 400, Y 100, Z 300, A 30, B 0, C 0}   ; base girada 30 graus
+  quadrado()
+  $BASE = $NULLFRAME
+  ; Mesmo destino com duas ferramentas: veja o robô mudar de pose
+  $TOOL = $NULLFRAME           ; TCP no centro da flange
+  PTP {X 500, Y 0, Z 500, A 0, B 90, C 0}
+  $TOOL = {X 110, Y 0, Z 0, A 0, B 0, C 0}        ; TCP na ponta da garra
+  PTP {X 500, Y 0, Z 500, A 0, B 90, C 0}
+  PTP HOME
+END
+
+DEF quadrado()
+  PTP {X 0, Y 0, Z 100, A 0, B 90, C 0}
+  LIN {X 0, Y 0, Z 0}
+  LIN {X 150, Y 0, Z 0}
+  LIN {X 150, Y 150, Z 0}
+  LIN {X 0, Y 150, Z 0}
+  LIN {X 0, Y 0, Z 0}
+  LIN {X 0, Y 0, Z 100}
+END

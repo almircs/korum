@@ -519,7 +519,7 @@ $("bReset").onclick = () => resetCell(false);
 $("pov").oninput = e => { S.pov = +e.target.value; $("povv").textContent = S.pov + "%"; };
 $("bClear").onclick = () => $("log").innerHTML = "";
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
-$("examples").innerHTML = `<option value="">Exemplos…</option>` + EXAMPLES.map(e => `<option value="${e.id}">${esc(e.title)}</option>`).join("");
+$("examples").innerHTML = `<option value="">Exemplos…</option>` + [...new Set(EXAMPLES.map(e => e.cat))].map(c => `<optgroup label="${esc(c)}">${EXAMPLES.filter(e => e.cat === c).map(e => `<option value="${e.id}">${esc(e.title)}</option>`).join("")}</optgroup>`).join("");
 $("examples").onchange = () => { const e = EXAMPLES.find(x => x.id === $("examples").value); $("examples").value = ""; if (e) openExample(e); };
 function openExample(e) {
   const p = newProject({ name: "Exemplo: " + e.title, cat: e.cat, src: e.src, dat: e.dat, scene: SCENES[e.scene || "pick"] });

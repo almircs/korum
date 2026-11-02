@@ -1,0 +1,31 @@
+DEF t14_despaletizar()
+  ; Retira as 4 peças do palete (2 x 2) e coloca em fila na esteira.
+  DECL INT lin, col, n
+  DECL E6POS PEGA, SOLTA
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  n = 0
+  FOR lin = 1 TO 2
+    FOR col = 1 TO 2
+      n = n + 1
+      PEGA = PALETE_1
+      PEGA.X = PALETE_1.X + (col - 1) * 100
+      PEGA.Y = PALETE_1.Y + (lin - 1) * 100
+      SOLTA = ESTEIRA_1
+      SOLTA.Y = ESTEIRA_1.Y + (n - 1) * 90
+      PTP PEGA
+      LIN_REL {Z -175}
+      $OUT[1] = TRUE
+      WAIT SEC 0.3
+      LIN_REL {Z 175}
+      PTP SOLTA
+      LIN_REL {Z -140}
+      $OUT[1] = FALSE
+      WAIT SEC 0.2
+      LIN_REL {Z 140}
+    ENDFOR
+  ENDFOR
+  PTP HOME
+END

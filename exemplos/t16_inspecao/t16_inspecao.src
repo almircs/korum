@@ -1,0 +1,36 @@
+DEF t16_inspecao()
+  ; Pega a peça, mostra à câmera em 3 posições (giro de 90 graus)
+  ; e decide: aprovada vai para a esteira; reprovada volta para a área de refugo.
+  ; Ative IN 6 antes da inspeção para simular uma peça REPROVADA.
+  DECL INT k
+  INI
+  $VEL.CP = 0.4
+  PTP HOME
+  $OUT[1] = FALSE
+  PTP PECA
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP CAMERA
+  FOR k = 1 TO 3
+    $OUT[5] = TRUE             ; dispara a câmera
+    WAIT SEC 0.4
+    $OUT[5] = FALSE
+    IF k < 3 THEN
+      LIN_REL {A 90}           ; gira a peça 90 graus
+    ENDIF
+  ENDFOR
+  IF $IN[6] THEN
+    $OUT[8] = TRUE             ; alarme de refugo
+    PTP REFUGO
+  ELSE
+    PTP ESTEIRA
+  ENDIF
+  LIN_REL {Z -140}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z 140}
+  $OUT[8] = FALSE
+  PTP HOME
+END

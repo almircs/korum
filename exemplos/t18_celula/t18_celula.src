@@ -1,0 +1,57 @@
+DEF t18_celula()
+  ; Programa de célula: o "CLP" escolhe a tarefa e dá a partida.
+  ;   IN 1 = tarefa 1 (mesa -> esteira)   IN 2 = tarefa 2 (esteira -> mesa)
+  ;   IN 8 = partida (desligue após cada ciclo)   IN 7 = encerrar
+  ;   OUT 2 = pronto   OUT 3 = em ciclo   OUT 4 = ciclo concluído   OUT 8 = falha
+  DECL INT tarefa
+  INI
+  PTP HOME
+  $OUT[1] = FALSE
+  LOOP
+    $OUT[2] = TRUE
+    WAIT FOR $IN[8] OR $IN[7]
+    IF $IN[7] THEN
+      EXIT
+    ENDIF
+    $OUT[2] = FALSE
+    $OUT[4] = FALSE
+    $OUT[3] = TRUE
+    tarefa = 0
+    IF $IN[1] THEN
+      tarefa = 1
+    ENDIF
+    IF $IN[2] THEN
+      tarefa = tarefa + 2
+    ENDIF
+    SWITCH tarefa
+    CASE 1
+      transferir(MESA, ESTEIRA)
+      $OUT[4] = TRUE
+    CASE 2
+      transferir(ESTEIRA, MESA)
+      $OUT[4] = TRUE
+    DEFAULT
+      $OUT[8] = TRUE           ; nenhuma ou duas tarefas selecionadas
+      WAIT SEC 1
+      $OUT[8] = FALSE
+    ENDSWITCH
+    $OUT[3] = FALSE
+    WAIT FOR NOT $IN[8]
+  ENDLOOP
+  $OUT[2] = FALSE
+  PTP HOME
+END
+
+DEF transferir(de:IN, para:IN)
+  PTP de
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP para
+  LIN_REL {Z -142}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z 142}
+  PTP HOME
+END

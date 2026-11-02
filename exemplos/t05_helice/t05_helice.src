@@ -1,0 +1,21 @@
+DEF t05_helice()
+  ; 3 voltas de raio 120 mm subindo 40 mm por volta (72 pontos LIN)
+  DECL INT i
+  DECL REAL ang, raio
+  DECL E6POS P
+  INI
+  raio = 120
+  $VEL.CP = 0.4
+  PTP HOME
+  P = CENTRO
+  P.X = CENTRO.X + raio
+  PTP P
+  FOR i = 1 TO 72
+    ang = i * 15
+    P.X = CENTRO.X + raio * COS(ang)
+    P.Y = CENTRO.Y + raio * SIN(ang)
+    P.Z = CENTRO.Z + i * 40 / 24
+    LIN P
+  ENDFOR
+  PTP HOME
+END

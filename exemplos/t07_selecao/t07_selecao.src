@@ -1,0 +1,42 @@
+DEF t07_selecao()
+  ; As entradas 1 a 3 formam o número do programa (1, 2 ou 3).
+  ; Ligue as entradas e depois IN 8 (partida). Desligue IN 8 para o próximo ciclo.
+  ; IN 7 encerra. $OUT[2] = robô pronto; $OUT[8] = número inválido.
+  DECL INT prog
+  INI
+  PTP HOME
+  LOOP
+    $OUT[2] = TRUE
+    WAIT FOR $IN[8] OR $IN[7]
+    IF $IN[7] THEN
+      EXIT
+    ENDIF
+    $OUT[2] = FALSE
+    prog = 0
+    IF $IN[1] THEN
+      prog = prog + 1
+    ENDIF
+    IF $IN[2] THEN
+      prog = prog + 2
+    ENDIF
+    IF $IN[3] THEN
+      prog = prog + 4
+    ENDIF
+    SWITCH prog
+    CASE 1
+      PTP POS_1
+    CASE 2
+      PTP POS_2
+    CASE 3
+      PTP POS_3
+    DEFAULT
+      $OUT[8] = TRUE
+      WAIT SEC 1
+      $OUT[8] = FALSE
+    ENDSWITCH
+    PTP HOME
+    WAIT FOR NOT $IN[8]
+  ENDLOOP
+  $OUT[2] = FALSE
+  PTP HOME
+END

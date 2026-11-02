@@ -1,0 +1,40 @@
+DEF t15_maquina()
+  ; Para cada peça: pega na mesa, coloca no dispositivo da máquina,
+  ; sinaliza o ciclo ($OUT[4]), espera a usinagem, retira e guarda na área de prontas.
+  INI
+  $VEL.CP = 0.5
+  PTP HOME
+  $OUT[1] = FALSE
+  pegar(BRUTA_1, 145)
+  maquinar()
+  soltar(PRONTA_1, 140)
+  pegar(BRUTA_2, 145)
+  maquinar()
+  soltar(PRONTA_2, 140)
+  PTP HOME
+END
+
+DEF maquinar()
+  soltar(DISPOSITIVO, 135)
+  PTP SEGURA                   ; fora da área da máquina
+  $OUT[4] = TRUE               ; inicia o ciclo da máquina
+  WAIT SEC 1.5                 ; tempo de usinagem (simulado)
+  $OUT[4] = FALSE
+  pegar(DISPOSITIVO, 135)
+END
+
+DEF pegar(alvo:IN, desce:IN)
+  PTP alvo
+  LIN_REL {Z -desce}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z desce}
+END
+
+DEF soltar(alvo:IN, desce:IN)
+  PTP alvo
+  LIN_REL {Z -desce}
+  $OUT[1] = FALSE
+  WAIT SEC 0.2
+  LIN_REL {Z desce}
+END

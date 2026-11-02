@@ -1,0 +1,33 @@
+DEF paletizar()
+  ; Pega 4 peças em fila na mesa e monta uma camada 2x2 no palete
+  DECL INT i
+  DECL E6POS PEGA, SOLTA
+  INI
+  $VEL.CP = 0.4
+  PTP HOME
+  $OUT[1] = FALSE
+  FOR i = 1 TO 4
+    ; posição da peça i na mesa (passo de 100 mm em Y)
+    PEGA = MESA_1
+    PEGA.Y = MESA_1.Y + (i - 1) * 100
+    ; posição i no palete: colunas em X, linhas em Y
+    SOLTA = PALETE_1
+    IF (i == 2) OR (i == 4) THEN
+      SOLTA.X = PALETE_1.X + 100
+    ENDIF
+    IF i > 2 THEN
+      SOLTA.Y = PALETE_1.Y + 100
+    ENDIF
+    PTP PEGA
+    LIN_REL {Z -145}
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    LIN_REL {Z 145}
+    PTP SOLTA
+    LIN_REL {Z -170}
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN_REL {Z 170}
+  ENDFOR
+  PTP HOME
+END

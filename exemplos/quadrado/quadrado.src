@@ -1,0 +1,17 @@
+DEF quadrado()
+  DECL INT i
+  DECL REAL lado
+  INI
+  lado = 200
+  $VEL.CP = 0.2
+  PTP HOME
+  PTP CANTO
+  FOR i = 1 TO 2
+    LIN_REL {X lado}
+    LIN_REL {Y lado}
+    LIN_REL {X -lado}
+    LIN_REL {Y -lado}
+    lado = lado / 2          ; segunda volta com metade do lado
+  ENDFOR
+  PTP HOME
+END

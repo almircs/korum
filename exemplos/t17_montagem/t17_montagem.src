@@ -1,0 +1,22 @@
+DEF t17_montagem()
+  ; Encaixa a peça 2 sobre a peça 1: aproximação rápida,
+  ; últimos milímetros bem devagar (como num encaixe com folga pequena).
+  INI
+  PTP HOME
+  $OUT[1] = FALSE
+  PTP P2_APROX
+  LIN_REL {Z -145}
+  $OUT[1] = TRUE
+  WAIT SEC 0.3
+  LIN_REL {Z 145}
+  PTP P1_APROX
+  $VEL.CP = 0.3
+  LIN_REL {Z -60}              ; aproximação rápida
+  $VEL.CP = 0.01               ; 10 mm/s no encaixe
+  LIN_REL {Z -34}
+  $OUT[1] = FALSE
+  WAIT SEC 0.5
+  $VEL.CP = 0.3
+  LIN_REL {Z 94}
+  PTP HOME
+END

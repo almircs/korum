@@ -1,0 +1,21 @@
+DEF t09_interrupt()
+  ; Uma interrupção vigia IN 5 (simula uma cortina de luz).
+  ; Ative IN 5 durante o ciclo: parada() sinaliza o alarme e espera IN 5 desligar.
+  DECL INT i
+  INI
+  INTERRUPT DECL 10 WHEN $IN[5] DO parada()
+  INTERRUPT ON 10
+  PTP HOME
+  FOR i = 1 TO 6
+    PTP PA
+    LIN PB
+  ENDFOR
+  INTERRUPT OFF 10
+  PTP HOME
+END
+
+DEF parada()
+  $OUT[8] = TRUE
+  WAIT FOR NOT $IN[5]
+  $OUT[8] = FALSE
+END

@@ -1,0 +1,9 @@
+DEF diagnostico()
+  ; Este programa tem problemas de propósito.
+  ; Execute, leia o console e corrija um de cada vez.
+  INI
+  PTP HOME
+  PTP P_LONGE                ; erro 1: ponto fora do alcance
+  LIN P_MESA                 ; erro 2: a ferramenta colide com a mesa
+  PTP HOME
+END

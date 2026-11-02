@@ -1,0 +1,22 @@
+DEF t06_luzes()
+  ; Acende as saídas 2 a 8 em sequência, 3 voltas. Observe o painel de E/S.
+  DECL INT n, volta
+  INI
+  PTP HOME
+  volta = 0
+  WHILE volta < 3
+    FOR n = 2 TO 8
+      $OUT[n] = TRUE
+      WAIT SEC 0.15
+      $OUT[n] = FALSE
+    ENDFOR
+    volta = volta + 1
+  ENDWHILE
+  FOR n = 2 TO 8
+    $OUT[n] = TRUE
+  ENDFOR
+  WAIT SEC 1
+  FOR n = 2 TO 8
+    $OUT[n] = FALSE
+  ENDFOR
+END

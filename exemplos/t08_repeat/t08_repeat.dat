@@ -1,0 +1,4 @@
+DEFDAT t08_repeat
+  DECL E6POS PA = {X 450, Y -300, Z 450, A 0, B 90, C 0}
+  DECL E6POS PB = {X 450, Y 300, Z 450, A 0, B 90, C 0}
+ENDDAT

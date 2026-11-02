@@ -1,0 +1,11 @@
+DEF circulo()
+  ; CIRC ponto_auxiliar, ponto_final
+  ; Dois CIRC de 180° formam um círculo completo
+  INI
+  $VEL.CP = 0.25
+  PTP HOME
+  PTP C_INICIO
+  CIRC C_AUX1, C_MEIO
+  CIRC C_AUX2, C_INICIO
+  PTP HOME
+END

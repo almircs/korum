@@ -1,0 +1,21 @@
+DEF t01_eixos()
+  ; Move um eixo de cada vez com agregados parciais de E6AXIS.
+  ; Observe no painel da direita qual eixo muda em cada linha.
+  DECL INT i
+  INI
+  PTP HOME
+  PTP {A1 60}
+  PTP {A1 -60}
+  PTP {A1 0}
+  PTP {A2 -60}                 ; braço inclina para a frente
+  PTP {A3 60}                  ; cotovelo
+  PTP {A2 -90, A3 90}
+  PTP {A5 60}                  ; dobra o punho
+  PTP {A4 90}                  ; gira o antebraço
+  PTP {A6 180}                 ; gira a flange
+  PTP {A4 0, A5 0, A6 0}
+  FOR i = 1 TO 4               ; giro relativo da base: 4 x 30 graus
+    PTP_REL {A1 30}
+  ENDFOR
+  PTP HOME
+END

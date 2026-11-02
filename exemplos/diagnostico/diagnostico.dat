@@ -1,0 +1,4 @@
+DEFDAT diagnostico
+  DECL E6POS P_LONGE = {X 1200, Y 0, Z 500, A 0, B 90, C 0}
+  DECL E6POS P_MESA = {X 575, Y 120, Z 120, A 0, B 90, C 0}
+ENDDAT

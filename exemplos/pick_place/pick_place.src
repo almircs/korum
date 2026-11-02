@@ -1,0 +1,22 @@
+DEF pick_place()
+  ; Retira a peça da Mesa A e deposita na Esteira B
+  ; A garra é comandada por $OUT[1]: TRUE fecha, FALSE abre
+  INI
+  $VEL.CP = 0.3              ; velocidade linear (m/s)
+  PTP HOME
+  $OUT[1] = FALSE            ; abre a garra
+
+  PTP P_APROX_A              ; aproximação acima da peça
+  LIN P_PEGA_A               ; desce em linha reta
+  $OUT[1] = TRUE             ; fecha a garra
+  WAIT SEC 0.4
+  LIN P_APROX_A              ; sobe com a peça
+
+  PTP P_APROX_B              ; vai até a esteira
+  LIN P_SOLTA_B
+  $OUT[1] = FALSE            ; solta a peça
+  WAIT SEC 0.3
+  LIN_REL {Z 140}            ; afasta 140 mm para cima
+
+  PTP HOME
+END

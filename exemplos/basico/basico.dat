@@ -1,0 +1,4 @@
+DEFDAT basico
+  DECL E6POS P1 = {X 450, Y 300, Z 450, A 0, B 90, C 0}
+  DECL E6POS P2 = {X 450, Y -300, Z 450, A 0, B 90, C 0}
+ENDDAT

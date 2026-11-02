@@ -1,0 +1,5 @@
+DEFDAT ciclo
+  ; pontos 145 mm acima das posições de pega/depósito
+  DECL E6POS P_A = {X 575, Y 0, Z 320, A 0, B 90, C 0}
+  DECL E6POS P_B = {X 300, Y -525, Z 320, A 0, B 90, C 0}
+ENDDAT

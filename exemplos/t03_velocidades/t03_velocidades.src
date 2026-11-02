@@ -1,0 +1,21 @@
+DEF t03_velocidades()
+  ; O mesmo trajeto LIN com 3 velocidades guardadas num vetor,
+  ; depois um PTP com velocidade de eixos reduzida.
+  DECL INT i
+  DECL REAL v[3]
+  INI
+  v[1] = 0.1
+  v[2] = 0.3
+  v[3] = 0.8
+  PTP HOME
+  FOR i = 1 TO 3
+    $VEL.CP = v[i]
+    PTP PA
+    LIN PB
+    LIN PA
+  ENDFOR
+  BAS(#PTP_PARAMS, 30)         ; eixos a 30 %
+  PTP PB
+  BAS(#PTP_PARAMS, 100)
+  PTP HOME
+END

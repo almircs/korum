@@ -1,0 +1,21 @@
+DEF t02_retangulo()
+  ; Um único ponto ensinado (CANTO); os outros são calculados.
+  DECL E6POS P
+  DECL REAL larg, comp
+  INI
+  larg = 300
+  comp = 200
+  $VEL.CP = 0.25
+  PTP HOME
+  P = CANTO
+  PTP P
+  P.Y = P.Y + larg
+  LIN P
+  P.X = P.X + comp
+  LIN P
+  P.Y = P.Y - larg
+  LIN P
+  P.X = P.X - comp
+  LIN P
+  PTP HOME
+END

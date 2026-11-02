@@ -1,0 +1,4 @@
+DEFDAT t20_limites
+  DECL E6POS LONGE = {X 1100, Y 0, Z 600, A 0, B 90, C 0}
+  DECL E6POS ABAIXO = {X 600, Y 0, Z -30, A 0, B 90, C 0}
+ENDDAT
