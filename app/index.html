@@ -122,6 +122,7 @@ section{background:var(--panel);min-width:0;min-height:0;display:flex;flex-direc
 .vtools>*{pointer-events:auto}
 .vtools button{background:rgba(22,26,32,.85);color:#dce2ea;border-color:#353e4a;padding:4px 9px;font-size:12px}
 .vtools button.on{border-color:var(--acc);color:var(--acc)}
+#view.clean .disclaimer,#view.clean .nowcmd{display:none!important}
 .nowcmd{position:absolute;left:10px;bottom:10px;font:500 13px var(--mono);color:#dce2ea;background:rgba(15,18,22,.88);border:1px solid #353e4a;border-left:3px solid var(--acc);padding:6px 10px;border-radius:6px;max-width:70%;pointer-events:none;display:none}
 .disclaimer{position:absolute;right:10px;bottom:8px;font-size:10.5px;color:#6b7684;pointer-events:none;text-align:right}
 .lbl{font:600 11px var(--mono);color:#fff;background:rgba(15,18,22,.75);padding:1px 5px;border-radius:4px;border:1px solid rgba(255,255,255,.12);white-space:nowrap}
@@ -282,7 +283,7 @@ body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
     <div class="vtools">
       <button data-cam="iso" class="on">Iso</button><button data-cam="front">Frente</button><button data-cam="side">Lateral</button><button data-cam="top">Topo</button>
       <span style="width:8px"></span>
-      <button id="tTrail" class="on">Trajetória</button><button id="tPts" class="on">Pontos</button><button id="tAxes" class="on">Eixos A1–A6</button><button id="tReach">Alcance</button>
+      <button id="tTrail" class="on">Trajetória</button><button id="tPts" class="on">Pontos</button><button id="tAxes" class="on">Eixos A1–A6</button><button id="tReach">Alcance</button><button id="tClean" title="Esconde legendas, pontos, trajetória e eixos de referência">Vista limpa</button>
       <span style="flex:1"></span>
       <button id="tClear">Limpar trajetória</button><button id="tFull" title="Tela cheia do simulador">⛶</button>
     </div>

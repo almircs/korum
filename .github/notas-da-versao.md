@@ -11,7 +11,11 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.1.0
+## Novidades da versão 1.1.1
+- Corrigido: com "Pontos" desligado, os nomes dos pontos (S1, T_APROX…) voltavam a aparecer ao executar ou editar o programa
+- Novo botão **Vista limpa** no simulador: esconde legendas, pontos, trajetória, eixos de referência e avisos, deixando só o robô, a célula e as peças (bom para vídeo e apresentação). Clique de novo para voltar
+
+## Versão 1.1.0
 - 20 programas de teste novos (T01 a T20) no menu Exemplos, agrupados por categoria: movimentação, velocidades, $BASE/$TOOL, hélice com SIN/COS, E/S e seleção de programa pelo CLP, REPEAT, INTERRUPT, vetores, soldagem, aplicação de cola, paletização em 2 camadas, despaletização, alimentação de máquina CNC, inspeção com câmera, montagem com encaixe lento, célula completa com handshake e dois de diagnóstico (singularidade e limites)
 - 3 cenários novos: Soldagem, Despaletização e Inspeção com câmera
 - Os mesmos programas como arquivos .src/.dat na pasta `exemplos` do repositório

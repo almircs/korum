@@ -215,7 +215,9 @@ function rbox(x, y, z, r) {
   const g = new THREE.ExtrudeGeometry(s, { depth: y, bevelEnabled: true, bevelSize: 6, bevelThickness: 6, bevelSegments: 3, curveSegments: 8 });
   g.translate(0, 0, -y / 2); g.rotateX(Math.PI / 2); return g;
 }
-function label(parent, txt, p, cls = "lbl", color) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; if (color) d.style.color = color; const o = new CSS2DObject(d); o.position.set(...p); parent.add(o); return o; }
+function label(parent, txt, p, cls = "lbl", color, k) { const d = document.createElement("div"); d.className = cls; d.textContent = txt; if (color) d.style.color = color; const o = new CSS2DObject(d); o.userData.k = k; o.position.set(...p); parent.add(o); return o; }
+// visibilidade das legendas por categoria (aplicada a cada quadro, inclusive em legendas recriadas)
+const VIS = { eixo: true, ponto: true, base: true, objeto: true, alvo: true };
 const G = RL.GEO;
 // ---- robô ----
 mesh(box(300, 300, 16), mat.dark, root, [0, 0, 8]);
@@ -239,10 +241,11 @@ const fA = mesh(box(85, 12, 30), mat.steel, tool, [87.5, 51, 0]), fB = mesh(box(
 const tcpMark = new THREE.Group(); tcpMark.matrixAutoUpdate = false; flange.add(tcpMark);
 const tcpAxes = new THREE.AxesHelper(70); tcpAxes.material.depthTest = false; tcpAxes.renderOrder = 5; tcpMark.add(tcpAxes);
 const grip = { target: 51, cur: 51 };
-const axLabels = [[g1, [0, 0, 230]], [g2, [0, -120, 0]], [g3, [0, -105, 0]], [g4, [150, 0, 60]], [g5, [0, -70, 0]], [g6, [50, 0, 50]]].map(([g, p], i) => label(g, "A" + (i + 1), p));
+const axLabels = [[g1, [0, 0, 230]], [g2, [0, -120, 0]], [g3, [0, -105, 0]], [g4, [150, 0, 60]], [g5, [0, -70, 0]], [g6, [50, 0, 50]]].map(([g, p], i) => label(g, "A" + (i + 1), p, "lbl", null, "eixo"));
+const baseAxes = new THREE.Group(); root.add(baseAxes);
 function arrow(dir, color, txt) {
-  root.add(new THREE.ArrowHelper(new THREE.Vector3(...dir), new THREE.Vector3(0, 0, 2), 260, color, 40, 22));
-  label(root, txt, [dir[0] * 300, dir[1] * 300, dir[2] * 300 + 2], "lbl ax", "#" + color.toString(16).padStart(6, "0"));
+  baseAxes.add(new THREE.ArrowHelper(new THREE.Vector3(...dir), new THREE.Vector3(0, 0, 2), 260, color, 40, 22));
+  label(baseAxes, txt, [dir[0] * 300, dir[1] * 300, dir[2] * 300 + 2], "lbl ax", "#" + color.toString(16).padStart(6, "0"), "base");
 }
 arrow([1, 0, 0], 0xff5a5a, "X"); arrow([0, 1, 0], 0x43c37a, "Y"); arrow([0, 0, 1], 0x5aa9ff, "Z");
 
@@ -271,7 +274,7 @@ function buildObject(o, id, grp) {
     ms.push(mesh(box(w, d, h), mat.steel, grp, [x, y, h / 2]));
   }
   obMeshes[id] = ms;
-  label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob");
+  label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
 }
 function surfaceBelow(x, y, excl) {
   let z = 0;
@@ -308,14 +311,14 @@ function showPoints(list) {
   for (const p of list) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(9, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffcb6b })); m.position.set(...p.pos); ptGroup.add(m);
     const ax = new THREE.AxesHelper(45); ax.position.set(...p.pos); ax.quaternion.copy(p.q); ptGroup.add(ax);
-    label(ptGroup, p.name, [p.pos[0], p.pos[1], p.pos[2] + 28], "lbl", "#ffcb6b");
+    label(ptGroup, p.name, [p.pos[0], p.pos[1], p.pos[2] + 28], "lbl", "#ffcb6b", "ponto");
   }
 }
 function showTargets() {
   clearGroup(tgGroup);
   for (const t of S.exTargets) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(14, 20, 14), new THREE.MeshBasicMaterial({ color: 0x43c37a, transparent: true, opacity: 0.75 })); m.position.set(t.X, t.Y, t.Z); tgGroup.add(m);
-    label(tgGroup, "🎯 " + t.nome, [t.X, t.Y, t.Z - 34], "lbl", "#43c37a");
+    label(tgGroup, "🎯 " + t.nome, [t.X, t.Y, t.Z - 34], "lbl", "#43c37a", "alvo");
   }
 }
 const m4 = m => { const M = new THREE.Matrix4(); M.set(...m); return M; };
@@ -433,7 +436,22 @@ const CAMS = { iso: [2.0, 1.45, 1.75], front: [2.6, 0.55, 0.18], side: [0.32, 0.
 function setCam(k) { camera.position.set(...CAMS[k]); controls.target.copy(TARGET); controls.update(); document.querySelectorAll("[data-cam]").forEach(b => b.classList.toggle("on", b.dataset.cam === k)); }
 document.querySelectorAll("[data-cam]").forEach(b => b.onclick = () => setCam(b.dataset.cam));
 const tg = (id, fn) => { const b = $(id); b.onclick = () => { b.classList.toggle("on"); fn(b.classList.contains("on")); }; };
-tg("tTrail", v => trail.visible = v); tg("tPts", v => ptGroup.visible = v); tg("tAxes", v => axLabels.forEach(o => o.visible = v)); tg("tReach", v => reach.visible = v);
+tg("tTrail", v => trail.visible = v); tg("tPts", v => { ptGroup.visible = v; VIS.ponto = v; }); tg("tAxes", v => VIS.eixo = v); tg("tReach", v => reach.visible = v);
+// Vista limpa: só o robô, a célula e as peças (para vídeo e apresentação)
+let cleanSaved = null;
+$("tClean").onclick = () => {
+  const b = $("tClean"), on = !b.classList.contains("on"); b.classList.toggle("on", on);
+  if (on) {
+    cleanSaved = { trail: trail.visible, pts: ptGroup.visible, eixo: VIS.eixo };
+    trail.visible = false; ptGroup.visible = false; baseAxes.visible = false; tcpAxes.visible = false; tgGroup.visible = false;
+    Object.keys(VIS).forEach(k => VIS[k] = false); $("view").classList.add("clean");
+  } else {
+    const c = cleanSaved || { trail: true, pts: true, eixo: true };
+    trail.visible = c.trail; ptGroup.visible = c.pts; baseAxes.visible = true; tcpAxes.visible = true; tgGroup.visible = true;
+    Object.assign(VIS, { eixo: c.eixo, ponto: c.pts, base: true, objeto: true, alvo: true }); $("view").classList.remove("clean");
+  }
+  ["tTrail", "tPts", "tAxes"].forEach(id => $(id).disabled = on);
+};
 $("tClear").onclick = clearTrail;
 $("tFull").onclick = () => { document.body.classList.toggle("full"); resize(); };
 function resize() { const w = view.clientWidth, h = view.clientHeight; if (!w || !h) return; renderer.setSize(w, h); css.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
@@ -441,7 +459,9 @@ new ResizeObserver(resize).observe(view);
 renderer.setAnimationLoop(() => {
   controls.update();
   if (Math.abs(grip.cur - grip.target) > 0.1) { grip.cur += Math.sign(grip.target - grip.cur) * Math.min(Math.abs(grip.target - grip.cur), 3); fA.position.y = grip.cur; fB.position.y = -grip.cur; }
-  updatePanel(); renderer.render(scene, camera); css.render(scene, camera);
+  updatePanel(); renderer.render(scene, camera);
+  root.traverse(o => { if (o.isCSS2DObject) o.visible = VIS[o.userData.k] !== false; });
+  css.render(scene, camera);
 });
 
 // ======================= EXECUÇÃO =======================
