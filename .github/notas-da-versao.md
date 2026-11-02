@@ -11,7 +11,12 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.0.0
+## Novidades da versão 1.1.0
+- 20 programas de teste novos (T01 a T20) no menu Exemplos, agrupados por categoria: movimentação, velocidades, $BASE/$TOOL, hélice com SIN/COS, E/S e seleção de programa pelo CLP, REPEAT, INTERRUPT, vetores, soldagem, aplicação de cola, paletização em 2 camadas, despaletização, alimentação de máquina CNC, inspeção com câmera, montagem com encaixe lento, célula completa com handshake e dois de diagnóstico (singularidade e limites)
+- 3 cenários novos: Soldagem, Despaletização e Inspeção com câmera
+- Os mesmos programas como arquivos .src/.dat na pasta `exemplos` do repositório
+
+## Versão 1.0.0
 - Simulador 3D de robô industrial de 6 eixos com cinemática direta e inversa, limites de eixo, singularidades e detecção de colisão
 - Editor KRL (.src e .dat) com destaque de sintaxe e interpretador real: PTP, LIN, CIRC, LIN_REL, subprogramas, IF/FOR/WHILE/LOOP/SWITCH, WAIT, E/S, $BASE e $TOOL, INTERRUPT
 - Execução contínua, passo a passo, pausa e override; linha atual destacada
