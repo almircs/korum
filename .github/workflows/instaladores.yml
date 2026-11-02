@@ -1,0 +1,84 @@
+name: Gerar instaladores
+
+# Para economizar minutos, roda só quando a versão muda (package.json)
+# ou manualmente pela aba Actions. Os instaladores vão direto para a
+# página "Releases" do repositório, sem guardar artefatos no Actions.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instaladores
+  cancel-in-progress: true
+
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Criar a versão na página Releases (se ainda não existir)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          TAG="v$VER"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "Korum $VER" --notes-file .github/notas-da-versao.md
+
+  windows:
+    needs: preparar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - name: Gerar instalador do Windows
+        run: npx electron-builder --win --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Enviar para a página Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp dist/*.exe "Instalar-Korum-Windows.exe"
+          gh release upload "${{ needs.preparar.outputs.tag }}" "Instalar-Korum-Windows.exe" --clobber
+
+  mac:
+    needs: preparar
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - name: Montar o app para Mac (Intel e chip Apple)
+        run: npx electron-builder --mac dir --x64 --arm64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Assinar (ad-hoc), compactar e enviar para a página Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for d in dist/mac dist/mac-arm64; do
+            codesign --force --deep --sign - "$d/Korum.app"
+            codesign --verify --deep "$d/Korum.app"
+          done
+          ditto -c -k --keepParent dist/mac-arm64/Korum.app "Korum-Mac-chip-Apple-M1-a-M4.zip"
+          ditto -c -k --keepParent dist/mac/Korum.app "Korum-Mac-Intel.zip"
+          gh release upload "${{ needs.preparar.outputs.tag }}" Korum-Mac-chip-Apple-M1-a-M4.zip Korum-Mac-Intel.zip --clobber

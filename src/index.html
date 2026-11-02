@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Korum — Laboratório Virtual de Robótica Industrial</title>
+<link rel="icon" href="icon.png">
+<style>
+@font-face{font-family:"Plex Sans";src:url(fonts/plex-sans-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"Plex Sans";src:url(fonts/plex-sans-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:"Plex Sans";src:url(fonts/plex-sans-600.woff2) format("woff2");font-weight:600 700}
+@font-face{font-family:"Plex Mono";src:url(fonts/plex-mono-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"Plex Mono";src:url(fonts/plex-mono-600.woff2) format("woff2");font-weight:500 700}
+:root{
+  --bg:#0f1216; --panel:#161a20; --panel2:#1c2129; --line:#2a313b; --line2:#353e4a; --code:#11151a; --gutter:#13171d;
+  --tx:#dce2ea; --mut:#8b96a5; --dim:#5d6876;
+  --acc:#ff7a1a; --acc2:#ffb066; --accTx:#1a0d00; --ok:#43c37a; --warn:#f2b33d; --err:#ff5a5a; --info:#5aa9ff;
+  --left:440px; --right:300px; --bottom:180px;
+  --mono:"Plex Mono",ui-monospace,Consolas,monospace; --sans:"Plex Sans","Segoe UI",system-ui,sans-serif;
+  --hk:#c792ea; --ht:#7fdbca; --hc:#5d6b7c; --hn:#f78c6c; --hs:#c3e88d; --hv:#82aaff; --he:#ffcb6b;
+}
+[data-theme=claro]{
+  --bg:#e9edf2; --panel:#f7f9fb; --panel2:#eef2f6; --line:#d5dce4; --line2:#c3ccd7; --code:#ffffff; --gutter:#f1f4f7;
+  --tx:#1d2530; --mut:#5b6777; --dim:#8a96a5; --acc:#e8630a; --acc2:#c2530a; --accTx:#fff;
+  --hk:#7c3aed; --ht:#0f8a7a; --hc:#8a96a5; --hn:#c2410c; --hs:#2f7d32; --hv:#1d5fc4; --he:#a16207;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.45 var(--sans);overflow:hidden}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--acc)}
+button:disabled{opacity:.4;cursor:default}
+button.pri{background:var(--acc);border-color:var(--acc);color:var(--accTx);font-weight:600}
+button.sm{padding:3px 8px;font-size:12px}
+button.danger:hover:not(:disabled){border-color:var(--err);color:var(--err)}
+select,input[type=number],input[type=text],input[type=password],input[type=search],textarea{background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:4px 6px}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--acc);outline-offset:0}
+h2{font-size:15px;margin:0 0 8px} h3{font-size:13.5px;margin:14px 0 6px;color:var(--acc2)}
+p{margin:6px 0}
+code,pre{font-family:var(--mono);font-size:12.5px} code{background:var(--bg);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);border:1px solid var(--line);padding:8px 10px;border-radius:6px;overflow:auto}
+table.t{border-collapse:collapse;width:100%} table.t td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top} table.t td:first-child{font-family:var(--mono);color:var(--acc2);white-space:nowrap}
+/* topo */
+header{height:50px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:9px;flex:none}
+.brand img{width:30px;height:30px;border-radius:7px}
+.brand b{font-size:16px;letter-spacing:.4px}
+.brand small{color:var(--mut);font-size:11px;display:block;line-height:1}
+#projName{font-weight:600;background:transparent;border:1px solid transparent;width:180px}
+#projName:hover{border-color:var(--line2)}
+.grp{display:flex;align-items:center;gap:6px}
+.sep{width:1px;height:26px;background:var(--line)}
+.sp{flex:1}
+.chip{font:600 11px var(--mono);padding:4px 9px;border-radius:20px;border:1px solid var(--line2);color:var(--mut);letter-spacing:.5px}
+.chip.running{color:var(--ok);border-color:var(--ok)} .chip.paused,.chip.waiting{color:var(--warn);border-color:var(--warn)} .chip.error{color:var(--err);border-color:var(--err)}
+.pov{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12px}
+.pov input{width:80px;accent-color:var(--acc)} .pov b{font-family:var(--mono);color:var(--tx);min-width:38px}
+.saved{font-size:11px;color:var(--dim)}
+/* grade */
+main{position:absolute;top:50px;left:0;right:0;bottom:0;display:grid;grid-template-columns:54px var(--left) 5px 1fr 5px var(--right);grid-template-rows:1fr 5px var(--bottom)}
+nav{grid-row:1/-1;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px}
+nav button{width:46px;height:46px;padding:0;border:none;background:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--mut);font-size:9.5px}
+nav button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav button:hover{color:var(--tx);background:var(--panel2)} nav button.on{color:var(--acc);background:var(--panel2);box-shadow:inset 2px 0 var(--acc)}
+.rz{background:var(--line)} .rz:hover,.rz.drag{background:var(--acc)} .rz.v{cursor:col-resize} .rz.h{cursor:row-resize;grid-column:2/-1}
+section{background:var(--panel);min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.ph{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:600;min-height:36px;flex:none}
+.ph button,.ph select{text-transform:none;letter-spacing:0;font-weight:500}
+.pane{display:none;flex:1;flex-direction:column;min-height:0} .pane.on{display:flex}
+.scroll{flex:1;overflow:auto;padding:10px 12px}
+/* editor */
+.tabs{display:flex;gap:2px}
+.tab{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;padding:5px 8px;color:var(--mut);font:500 12px var(--mono);text-transform:none;letter-spacing:0}
+.tab.on{color:var(--tx);border-bottom-color:var(--acc)}
+.codewrap{position:relative;flex:1;overflow:hidden;background:var(--code)}
+.gut,.hl,.ta{position:absolute;top:0;bottom:0;margin:0;padding:8px 0;font:13px/20px var(--mono);white-space:pre;tab-size:2;border:0;border-radius:0}
+.gut{left:0;width:46px;overflow:hidden;color:var(--dim);text-align:right;background:var(--gutter);border-right:1px solid var(--line);user-select:none}
+.gut div{padding-right:8px;height:20px}
+.gut div.cur{color:var(--acc);background:rgba(255,122,26,.12)} .gut div.errl{color:#fff;background:var(--err)} .gut div.wrn{color:var(--warn)}
+.hl{left:46px;right:0;overflow:hidden;pointer-events:none;color:var(--tx);background:none}
+.hl div{height:20px;padding:0 10px}
+.hl div.cur{background:rgba(255,122,26,.16);box-shadow:inset 3px 0 var(--acc)} .hl div.errl{background:rgba(255,90,90,.18);box-shadow:inset 3px 0 var(--err)}
+.ta{left:46px;right:0;width:calc(100% - 46px);padding:8px 10px;outline:0!important;resize:none;background:transparent;color:transparent;caret-color:var(--acc);overflow:auto}
+.ta::selection{background:rgba(90,169,255,.35);color:transparent}
+.k{color:var(--hk)}.m{color:var(--acc);font-weight:600}.t{color:var(--ht)}.c{color:var(--hc);font-style:italic}.n{color:var(--hn)}.s{color:var(--hs)}.v{color:var(--hv)}.e{color:var(--he)}
+/* listas e cartões */
+.item{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.item:hover{border-color:var(--line2)} .item.on{border-color:var(--acc)}
+.item .meta{font-size:11.5px;color:var(--mut)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.row label{color:var(--mut);font-size:12px}
+.badge{font:600 10.5px var(--mono);padding:1px 6px;border-radius:10px;border:1px solid var(--line2);color:var(--mut)}
+.badge.ok{color:var(--ok);border-color:var(--ok)} .badge.warn{color:var(--warn);border-color:var(--warn)} .badge.err{color:var(--err);border-color:var(--err)}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden} .bar i{display:block;height:100%;background:var(--acc)}
+.crit{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)} .crit b{flex:none;width:18px}
+.crit.ok b{color:var(--ok)} .crit.no b{color:var(--err)} .crit small{display:block;color:var(--mut)}
+.lesson p,.lesson li{font-size:13.5px;line-height:1.6}
+.cat{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:12px 0 6px;font-weight:600}
+/* blocos */
+.palette{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border-bottom:1px solid var(--line);flex:none}
+.palette button{font-size:11.5px;padding:3px 7px}
+.palette button[data-g=mov]{border-left:3px solid var(--acc)} .palette button[data-g=io]{border-left:3px solid var(--ok)} .palette button[data-g=fl]{border-left:3px solid var(--hk)} .palette button[data-g=tm]{border-left:3px solid var(--info)}
+.blk{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line2);border-left:4px solid var(--acc);border-radius:7px;padding:5px 6px;margin:4px 0;font-size:12.5px}
+.blk.io{border-left-color:var(--ok)} .blk.fl{border-left-color:var(--hk)} .blk.tm{border-left-color:var(--info)} .blk.raw{border-left-color:var(--dim);font-family:var(--mono)}
+.blk.drag{opacity:.4} .blk.over{box-shadow:0 -2px 0 var(--acc)}
+.blk .h{cursor:grab;color:var(--dim);padding:0 2px} .blk b{font-weight:600}
+.blk input,.blk select{padding:2px 4px;font-size:12px} .blk input[type=number]{width:70px}
+.blk .x{margin-left:auto;display:flex;gap:2px} .blk .x button{padding:1px 6px;font-size:11px}
+/* chat */
+.chat{flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.msg{padding:8px 10px;border-radius:8px;max-width:95%;font-size:13px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.msg.u{background:var(--acc);color:var(--accTx);align-self:flex-end;white-space:pre-wrap}
+.msg.a{background:var(--panel2);border:1px solid var(--line)}
+.msg.a pre{white-space:pre;margin:6px 0}
+.chatin{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line);flex:none}
+.chatin textarea{flex:1;resize:none;height:56px}
+.quick{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px 0;flex:none} .quick button{font-size:11.5px;padding:2px 7px}
+/* viewport */
+#view{position:relative;background:#0c0f13}
+#view canvas{display:block}
+.vtools{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.vtools>*{pointer-events:auto}
+.vtools button{background:rgba(22,26,32,.85);color:#dce2ea;border-color:#353e4a;padding:4px 9px;font-size:12px}
+.vtools button.on{border-color:var(--acc);color:var(--acc)}
+.nowcmd{position:absolute;left:10px;bottom:10px;font:500 13px var(--mono);color:#dce2ea;background:rgba(15,18,22,.88);border:1px solid #353e4a;border-left:3px solid var(--acc);padding:6px 10px;border-radius:6px;max-width:70%;pointer-events:none;display:none}
+.disclaimer{position:absolute;right:10px;bottom:8px;font-size:10.5px;color:#6b7684;pointer-events:none;text-align:right}
+.lbl{font:600 11px var(--mono);color:#fff;background:rgba(15,18,22,.75);padding:1px 5px;border-radius:4px;border:1px solid rgba(255,255,255,.12);white-space:nowrap}
+.lbl.ax{background:none;border:none;font-size:12px} .lbl.ob{color:#aab4c0;font-weight:500}
+/* painel direito */
+#right{overflow:auto}
+.sec{padding:9px 10px;border-bottom:1px solid var(--line)}
+.sec h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.axis{display:grid;grid-template-columns:24px 1fr 62px;gap:6px;align-items:center;margin-bottom:5px}
+.axis b{font:600 12px var(--mono);color:var(--acc2)}
+.axis input[type=range]{width:100%;accent-color:var(--acc)}
+.axis input[type=number]{width:62px;text-align:right;font-family:var(--mono);font-size:12px;padding:2px 4px}
+.axis.near b{color:var(--warn)} .axis.lim b{color:var(--err)}
+.pose{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-family:var(--mono);font-size:12px}
+.pose div{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:3px 6px;display:flex;justify-content:space-between}
+.pose span{color:var(--mut)}
+.jog{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:6px} .jog button{padding:4px 0;font:600 11px var(--mono)}
+.gopos{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;margin-top:6px} .gopos input{width:100%;font:12px var(--mono);padding:3px;text-align:right} .gopos label{font:10px var(--mono);color:var(--mut);text-align:center}
+.io{display:grid;grid-template-columns:repeat(8,1fr);gap:4px} .io button{padding:4px 0;font:600 10.5px var(--mono)}
+.io button.on{background:var(--ok);border-color:var(--ok);color:#06210f}
+.lamp{display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10px var(--mono);color:var(--mut)}
+.lamp i{width:14px;height:14px;border-radius:50%;background:var(--line);border:1px solid var(--line2)} .lamp.on i{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.note{font-size:11.5px;color:var(--mut);margin-top:6px}
+.waitio{outline:2px solid var(--warn);outline-offset:2px;border-radius:6px;animation:pulse 1s infinite} @keyframes pulse{50%{outline-color:transparent}}
+/* console */
+#console{grid-column:2/-1}
+.log{flex:1;overflow:auto;font:12.5px/1.5 var(--mono);padding:4px 0}
+.log div{padding:1px 12px;display:flex;gap:10px} .log div:hover{background:var(--panel2)}
+.log time{color:var(--dim);flex:none} .log .lv{flex:none;width:44px;font-weight:600}
+.log .info .lv{color:var(--info)}.log .ok .lv{color:var(--ok)}.log .warn .lv{color:var(--warn)}.log .err .lv{color:var(--err)}.log .run .lv{color:var(--acc)}
+.log .err .lm{color:var(--err)} .log a{color:var(--acc2);cursor:pointer;text-decoration:underline;flex:none}
+/* modais */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:50}
+.modal.on{display:flex}
+.card{background:var(--panel);border:1px solid var(--line2);border-radius:10px;width:min(860px,94vw);max-height:88vh;display:flex;flex-direction:column}
+.card.small{width:min(460px,94vw)}
+.card .body{overflow:auto;padding:14px 18px;font-size:13.5px;line-height:1.55}
+.card .foot{display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid var(--line)}
+.diff{font:12.5px/1.5 var(--mono);white-space:pre;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px}
+.diff div{padding:0 10px} .diff .a{background:rgba(67,195,122,.16)} .diff .r{background:rgba(255,90,90,.16)} .diff .h{color:var(--dim)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--acc);padding:8px 14px;border-radius:8px;z-index:60;display:none}
+.rep td{font-size:12.5px} .rep td:first-child{color:var(--mut);font-family:var(--sans);white-space:normal}
+body.full main{grid-template-columns:54px 0 0 1fr 0 0;grid-template-rows:1fr 0 0}
+body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><img src="icon.png" alt=""><div><b>Korum</b><small>laboratório de robótica</small></div></div>
+  <input id="projName" title="Nome do projeto (clique para renomear)">
+  <span class="saved" id="saved"></span>
+  <div class="sep"></div>
+  <div class="grp">
+    <button id="bCheck" title="Verificar sintaxe e variáveis">✓ Verificar</button>
+    <button id="bRun" class="pri" title="Executar (F5)">▶ Executar</button>
+    <button id="bStep" title="Uma instrução por clique (F10)">⏭ Passo</button>
+    <button id="bPause" disabled>⏸ Pausar</button>
+    <button id="bStop" disabled>■ Parar</button>
+    <button id="bReset" title="Robô em HOME, peças nas posições iniciais">⟲ Reiniciar</button>
+  </div>
+  <div class="pov" title="Override de programa ($OV_PRO)">Override <input type="range" id="pov" min="1" max="100" value="100"><b id="povv">100%</b></div>
+  <div class="sp"></div>
+  <span class="chip" id="status">PARADO</span>
+  <button id="bTheme" title="Alternar tema escuro/claro">Tema</button>
+  <button id="bHelp">Ajuda</button>
+</header>
+<main>
+  <nav id="nav">
+    <button data-p="prog" class="on" title="Programa KRL"><svg viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>Programa</button>
+    <button data-p="blocos" title="Programação por blocos"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="6" rx="1.5"/><rect x="7" y="11" width="12" height="5" rx="1.5"/><rect x="3" y="18" width="8" height="3" rx="1"/></svg>Blocos</button>
+    <button data-p="projetos" title="Biblioteca de projetos, versões e backup"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projetos</button>
+    <button data-p="cursos" title="Trilha de aprendizado"><svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10v5c3 3 9 3 12 0v-5"/></svg>Cursos</button>
+    <button data-p="exerc" title="Exercícios com avaliação"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Exercícios</button>
+    <button data-p="cena" title="Cenário da célula"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>Cenário</button>
+    <button data-p="analise" title="Análise e engenharia reversa"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>Análise</button>
+    <button data-p="ia" title="Professor de robótica com IA"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>Professor</button>
+    <div class="sp"></div>
+    <button data-p="config" title="Configurações"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
+  </nav>
+  <section id="left">
+    <!-- PROGRAMA -->
+    <div class="pane on" id="p-prog">
+      <div class="ph"><div class="tabs"><button class="tab on" data-f="src" id="tabSrc">programa.src</button><button class="tab" data-f="dat" id="tabDat">programa.dat</button></div><div class="sp"></div>
+        <select id="examples" title="Exemplos" style="max-width:120px"></select>
+        <button class="sm" id="bTeach" title="Grava a pose atual no .dat e insere PTP no .src">⊕ Ponto</button></div>
+      <div class="codewrap"><div class="gut" id="gut"></div><pre class="hl" id="hl"></pre><textarea class="ta" id="ta" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></div>
+    </div>
+    <!-- BLOCOS -->
+    <div class="pane" id="p-blocos">
+      <div class="ph">Programação por blocos<div class="sp"></div><button class="sm" id="bBlkRead" title="Converte o programa .src atual em blocos">Ler do KRL</button><button class="sm pri" id="bBlkGen" title="Gera o .src a partir dos blocos">Gerar KRL</button></div>
+      <div class="palette" id="palette"></div>
+      <div class="scroll" id="blocks"></div>
+      <div class="note" style="padding:6px 12px;border-top:1px solid var(--line)">Arraste ⠿ para reordenar. "Gerar KRL" substitui o programa .src pelos blocos (a versão anterior fica no histórico). Pontos vêm do .dat; use ⊕ para gravar a pose atual.</div>
+    </div>
+    <!-- PROJETOS -->
+    <div class="pane" id="p-projetos">
+      <div class="ph">Biblioteca de projetos<div class="sp"></div><button class="sm pri" id="bProjNew">+ Novo</button><button class="sm" id="bProjImport" title="Importar .src/.dat como novo projeto">Importar KRL</button></div>
+      <div class="scroll">
+        <div class="row"><input type="search" id="projSearch" placeholder="Buscar projeto…" style="flex:1"><select id="projCatF"><option value="">Todas as categorias</option></select></div>
+        <div id="projList"></div>
+        <div id="projDetail"></div>
+        <h3>Backup e restauração</h3>
+        <div class="row"><button id="bBackupAll">Backup completo (.zip)</button><button id="bBackupProj">Backup deste projeto (.zip)</button></div>
+        <div class="row"><button id="bRestore">Importar / restaurar backup…</button><button id="bExportKrl">Exportar .src e .dat</button></div>
+        <div class="note" id="backupInfo"></div>
+      </div>
+    </div>
+    <!-- CURSOS -->
+    <div class="pane" id="p-cursos"><div class="ph">Trilha de aprendizado<div class="sp"></div><span id="courseProg" class="badge"></span></div><div class="scroll" id="courses"></div></div>
+    <!-- EXERCÍCIOS -->
+    <div class="pane" id="p-exerc"><div class="ph">Exercícios práticos<div class="sp"></div><span id="exProg" class="badge"></span></div><div class="scroll" id="exercises"></div></div>
+    <!-- CENÁRIO -->
+    <div class="pane" id="p-cena"><div class="ph">Cenário da célula<div class="sp"></div><button class="sm pri" id="bSceneApply">Aplicar</button></div>
+      <div class="scroll">
+        <div class="row"><label>Modelo</label><select id="scenePreset" style="flex:1"></select></div>
+        <div class="note">O cenário é salvo junto com o projeto. Objetos são obstáculos para a detecção de colisão; peças podem ser pegas pela garra. Medidas em mm (X, Y = centro; L × P × A).</div>
+        <h3>Objetos</h3><div id="sceneObjs"></div>
+        <div class="row"><select id="newObjType"><option value="mesa">Mesa</option><option value="esteira">Esteira</option><option value="palete">Palete</option><option value="maquina">Máquina</option><option value="bloco">Bloco / dispositivo</option></select><button id="bAddObj">+ Objeto</button></div>
+        <h3>Peças (cubos de 50 mm)</h3><div id="sceneParts"></div>
+        <div class="row"><button id="bAddPart">+ Peça</button><span class="note">Z é calculado: a peça fica apoiada na superfície abaixo dela.</span></div>
+      </div>
+    </div>
+    <!-- ANÁLISE -->
+    <div class="pane" id="p-analise"><div class="ph">Análise e engenharia reversa<div class="sp"></div><button class="sm pri" id="bAnalyze">Analisar programa</button></div>
+      <div class="scroll">
+        <p class="note">Importe um programa existente e o Korum reconstrói a sequência de movimentos, verifica alcance e colisões de todos os pontos, executa o programa sem animação e guarda o original para comparar depois das suas alterações.</p>
+        <div class="row"><button id="bRevImport">Importar programa (.src/.dat)…</button><button id="bRevDiff">Comparar com o original</button><button id="bRevRestore" class="danger">Restaurar original</button></div>
+        <div class="note" id="revOrig"></div>
+        <div id="report"></div>
+      </div>
+    </div>
+    <!-- IA -->
+    <div class="pane" id="p-ia"><div class="ph">Professor de robótica (IA)<div class="sp"></div><button class="sm" id="bChatClear">Nova conversa</button></div>
+      <div class="chat" id="chat"></div>
+      <div class="quick" id="quick"></div>
+      <div class="chatin"><textarea id="chatIn" placeholder="Pergunte sobre o programa aberto, comandos KRL, erros… (Enter envia, Shift+Enter quebra linha)"></textarea><button class="pri" id="bChatSend">Enviar</button></div>
+    </div>
+    <!-- CONFIG -->
+    <div class="pane" id="p-config"><div class="ph">Ajustes</div>
+      <div class="scroll">
+        <h3>Aparência</h3>
+        <div class="row"><label>Tema</label><select id="cfgTheme"><option value="escuro">Escuro (Oficina)</option><option value="claro">Claro (Engenharia)</option></select></div>
+        <h3>Professor com IA</h3>
+        <p class="note">O Professor usa a API da Anthropic (Claude) com a sua chave pessoal. Crie uma chave em console.anthropic.com. O uso é cobrado pela Anthropic na sua conta. A chave fica gravada só neste computador, nos dados do Korum. Sem chave, o Professor responde com o glossário de comandos embutido.</p>
+        <div class="row"><label style="width:70px">Chave</label><input type="password" id="cfgKey" style="flex:1" placeholder="sk-ant-..."></div>
+        <div class="row"><label style="width:70px">Modelo</label><input type="text" id="cfgModel" style="flex:1"></div>
+        <h3>Backup</h3>
+        <div class="row"><label>Pasta de backups</label><span id="cfgDir" class="note" style="flex:1;margin:0"></span><button id="bCfgDir">Escolher…</button></div>
+        <p class="note">O Korum salva automaticamente a cada alteração e guarda uma cópia por dia dos últimos 30 dias na pasta de dados. A pasta acima é o local sugerido para os backups .zip que você exporta.</p>
+        <div class="row"><button id="bOpenData">Abrir pasta de dados</button></div>
+        <h3>Sobre</h3>
+        <p class="note" id="about"></p>
+      </div>
+    </div>
+  </section>
+  <div class="rz v" data-rz="left"></div>
+  <section id="view">
+    <div class="vtools">
+      <button data-cam="iso" class="on">Iso</button><button data-cam="front">Frente</button><button data-cam="side">Lateral</button><button data-cam="top">Topo</button>
+      <span style="width:8px"></span>
+      <button id="tTrail" class="on">Trajetória</button><button id="tPts" class="on">Pontos</button><button id="tAxes" class="on">Eixos A1–A6</button><button id="tReach">Alcance</button>
+      <span style="flex:1"></span>
+      <button id="tClear">Limpar trajetória</button><button id="tFull" title="Tela cheia do simulador">⛶</button>
+    </div>
+    <div class="nowcmd" id="nowcmd"></div>
+    <div class="disclaimer">Modelo de 6 eixos com dimensões didáticas aproximadas.<br>Simulação educacional: não substitui controlador real nem valida segurança.</div>
+  </section>
+  <div class="rz v" data-rz="right"></div>
+  <section id="right">
+    <div class="sec">
+      <h4>Eixos (graus)<span class="sp"></span><button class="sm" id="bHome">HOME</button></h4>
+      <div id="axes"></div>
+    </div>
+    <div class="sec">
+      <h4>Posição do TCP ($POS_ACT)</h4>
+      <div class="pose" id="pose"></div>
+      <div class="row"><label>Mover em</label><select id="jogFrame"><option value="BASE">BASE</option><option value="TOOL">FERRAMENTA</option></select><select id="jogStep"><option value="1">1 mm / 1°</option><option value="10" selected>10 mm / 5°</option><option value="50">50 mm / 15°</option></select></div>
+      <div class="jog" id="jog"></div>
+      <div class="gopos" id="gopos"></div>
+      <div class="row"><button id="bGo" style="flex:1">Mover TCP para X Y Z A B C</button></div>
+      <div class="note" id="ikmsg"></div>
+    </div>
+    <div class="sec">
+      <h4>Entradas $IN (clique)</h4>
+      <div class="io" id="ins"></div>
+      <h4 style="margin-top:10px">Saídas $OUT</h4>
+      <div class="io" id="outs"></div>
+      <div class="note">$OUT[1] comanda a garra (TRUE fecha). Ferramenta: <b id="toolInfo">garra</b></div>
+    </div>
+  </section>
+  <div class="rz h" data-rz="bottom"></div>
+  <section id="console">
+    <div class="ph">Console de execução e diagnóstico<div class="sp"></div><button class="sm" id="bClear">Limpar</button></div>
+    <div class="log" id="log"></div>
+  </section>
+</main>
+
+<div class="modal" id="mHelp"><div class="card"><div class="ph">Ajuda — comandos interpretados<div class="sp"></div><button class="sm" data-close>Fechar</button></div><div class="body">
+<h3>Como usar</h3>
+<ul>
+<li>Escreva o programa no <code>.src</code> e os pontos no <code>.dat</code>, clique em <b>Verificar</b> e depois em <b>Executar</b> (F5). A linha em execução fica destacada e o robô executa cada comando. <b>Passo</b> (F10) executa uma instrução por clique.</li>
+<li>Os projetos ficam na <b>Biblioteca</b>, com salvamento automático, histórico de versões e backup em .zip.</li>
+<li>Aprenda pela trilha de <b>Cursos</b>, pratique nos <b>Exercícios</b> (com nota automática) e monte sua célula no <b>Cenário</b>.</li>
+</ul>
+<h3>Instruções</h3>
+<table class="t">
+<tr><td>PTP · LIN · CIRC</td><td>Ponto a ponto, linear e circular (<code>CIRC aux, fim</code>). Destinos E6POS/POS/FRAME ou E6AXIS/AXIS; agregados parciais completam com a posição atual (<code>PTP {A1 45}</code>).</td></tr>
+<tr><td>PTP_REL · LIN_REL</td><td>Deslocamento relativo na BASE (padrão) ou <code>#TOOL</code>.</td></tr>
+<tr><td>DEF/END · DECL · INI</td><td>Subprogramas com parâmetros; INT, REAL, BOOL, E6POS, POS, FRAME, E6AXIS, AXIS e vetores.</td></tr>
+<tr><td>IF · FOR · WHILE · REPEAT · LOOP · SWITCH · EXIT</td><td>Controle de fluxo.</td></tr>
+<tr><td>WAIT SEC · WAIT FOR · HALT</td><td>Esperas e pausa.</td></tr>
+<tr><td>$IN[n] · $OUT[n]</td><td>Entradas 1–8 no painel; saídas 1–64. $OUT[1] = garra.</td></tr>
+<tr><td>$VEL.CP · $VEL_AXIS[n] · $OV_PRO</td><td>Velocidades e override.</td></tr>
+<tr><td>$BASE · $TOOL · $POS_ACT · $AXIS_ACT · $NULLFRAME</td><td>Sistemas de coordenadas e posição atual.</td></tr>
+<tr><td>INTERRUPT DECL/ON/OFF</td><td>Verificado entre instruções (borda de subida).</td></tr>
+<tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>
+<tr><td>SIN COS TAN ACOS ATAN2 SQRT ABS</td><td>Funções (graus).</td></tr>
+</table>
+<h3>Limitações</h3>
+<ul>
+<li>Aproximações (<code>C_PTP</code>, <code>C_DIS</code>) são aceitas, mas o robô para em cada ponto.</li>
+<li>SPLINE, TRIGGER, GOTO, DEFFCT e operador <code>:</code> aparecem como aviso e não são executados.</li>
+<li>Status e Turn (S, T) são ignorados: a cinemática inversa escolhe a solução mais próxima.</li>
+<li>Colisão verificada para cotovelo, punho, flange e ferramenta contra piso e objetos do cenário (não contra as peças nem do robô com ele mesmo).</li>
+<li>Em KRL, <code>AND</code>/<code>OR</code> têm prioridade maior que comparações: use parênteses.</li>
+<li>Dimensões, velocidades e tempos são didáticos e aproximados. Não envia comandos a robôs reais.</li>
+</ul>
+<h3>Convenções</h3>
+<ul><li>mm e graus; X para a frente, Z para cima; A, B, C = rotações em Z, Y, X. Ferramenta para baixo: <code>B 90</code>.</li>
+<li>HOME = {A1 0, A2 -90, A3 90, A4 0, A5 0, A6 0}. Garra com TCP a 110 mm do flange.</li></ul>
+</div></div></div>
+
+<div class="modal" id="mDiff"><div class="card"><div class="ph"><span id="diffTitle">Comparar versões</span><div class="sp"></div><button class="sm" data-close>Fechar</button></div><div class="body"><div id="diffBody"></div></div></div></div>
+
+<div class="modal" id="mAsk"><div class="card small"><div class="ph" id="askTitle">Confirmar</div><div class="body" id="askBody"></div><div class="foot" id="askFoot"></div></div></div>
+
+<input type="file" id="fileKrl" accept=".src,.dat,.txt,.krl" multiple hidden>
+<input type="file" id="fileZip" accept=".zip,.json" hidden>
+<div class="toast" id="toast"></div>
+<script src="core.js"></script>
+<script src="data.js"></script>
+<script src="ui.bundle.js"></script>
+</body>
+</html>

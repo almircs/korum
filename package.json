@@ -1,0 +1,90 @@
+{
+  "name": "korum",
+  "version": "1.0.0",
+  "description": "Korum — laboratório virtual de robótica industrial: simulador 3D de robô de 6 eixos, editor e interpretador KRL, cursos, exercícios e Professor com IA.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "node scripts/build.js",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "author": "Carlos Almir",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "electron": "^33.2.1",
+    "electron-builder": "25.1.8",
+    "esbuild": "^0.24.0",
+    "jszip": "^3.10.1",
+    "three": "0.160.0"
+  },
+  "productName": "Korum",
+  "private": true,
+  "build": {
+    "appId": "br.korum.app",
+    "productName": "Korum",
+    "artifactName": "Korum-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Korum",
+      "uninstallDisplayName": "Korum",
+      "installerLanguages": [
+        "pt_BR"
+      ],
+      "language": "1046"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "icon": "build/icon.png",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Korum"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Education",
+      "icon": "build/icon.png"
+    }
+  }
+}
