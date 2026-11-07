@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import JSZip from "jszip";
+import { initKCP } from "./kcp.js";
 
 const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => (Math.abs(v) < 0.05 && d <= 1 ? 0 : v).toFixed(d);
@@ -73,6 +74,7 @@ function log(lvl, msg, loc) {
   if (loc && loc.line) { const a = document.createElement("a"); a.textContent = `${loc.file === "dat" ? "dat" : "src"}:${loc.line}`; a.onclick = () => { showPane("prog"); gotoLine(loc); }; d.appendChild(a); }
   const m = document.createElement("span"); m.className = "lm"; m.textContent = msg; d.appendChild(m);
   const box = $("log"); box.appendChild(d); while (box.children.length > 800) box.firstChild.remove(); box.scrollTop = box.scrollHeight;
+  if (S.onLog) S.onLog(lvl, msg, loc);
   S.logTail.push(`${L}${loc && loc.line ? ` (${loc.file}:${loc.line})` : ""}: ${msg}`); if (S.logTail.length > 30) S.logTail.shift();
 }
 let toastT; function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = "none", 2400); }
@@ -93,7 +95,11 @@ const S = { joints: RL.HOME.slice(), file: "src", ins: new Array(9).fill(false),
 
 // ======================= NAVEGAÇÃO =======================
 function showPane(p) {
-  S.pane = p;
+  const wasK = S.pane === "kcp"; S.pane = p;
+  if ((p === "kcp") !== wasK) { document.body.classList.toggle("kcp", p === "kcp"); const r = document.documentElement;
+    if (p === "kcp") { S.leftSaved = r.style.getPropertyValue("--left"); r.style.setProperty("--left", "760px"); } else r.style.setProperty("--left", S.leftSaved || "440px");
+    setTimeout(resize, 30); }
+  if (p === "kcp" && S.kcpShow) S.kcpShow();
   document.querySelectorAll("#nav button[data-p]").forEach(b => b.classList.toggle("on", b.dataset.p === p));
   document.querySelectorAll(".pane").forEach(el => el.classList.toggle("on", el.id === "p-" + p));
   if (p === "prog") { render(); }
@@ -491,6 +497,7 @@ function check(verbose) {
 async function runProgram(stepping) {
   if (S.running) { if (S.machine) stepping ? S.machine.step() : S.machine.resume(); return null; }
   const pr = check(false); if (!pr) return "error";
+  if (S.kcpCheck) { const e = S.kcpCheck(); if (e) { log("err", e); return "error"; } }
   saveVersion("Antes de executar");
   const seen = new Set(); pr.warnings.forEach(w => { if (!seen.has(w.msg)) { seen.add(w.msg); log("warn", w.msg, w.loc); } });
   setTool(RL.DEFAULT_TOOL); S.base = { X: 0, Y: 0, Z: 0, A: 0, B: 0, C: 0 }; S.events = [];
@@ -504,7 +511,7 @@ async function runProgram(stepping) {
     points: scope => showPoints(pointsFromScope(scope)),
     errorLine: loc => { S.errLine = loc; S.curLine = null; if (S.pane === "prog") { render(); gotoLine(loc, false); } },
     collision: id => { flashObstacle(id); S.events.push({ t: "collision" }); },
-    moved: (label, pos, cut) => S.events.push({ t: "move", label: label || "", pos, joints: S.joints.slice(), cut }),
+    moved: (label, pos, cut) => { S.events.push({ t: "move", label: label || "", pos, joints: S.joints.slice(), cut }); if (S.onMoved) S.onMoved(); },
     waitEvent: text => S.events.push({ t: "wait", text }),
     waiting: on => { $("ins").classList.toggle("waitio", on); setStatus(on ? "waiting" : "running"); },
     animate: plan => new Promise(res => {
@@ -512,10 +519,14 @@ async function runProgram(stepping) {
       const frame = nw => {
         const d = Math.max(0, Math.min(0.1, (nw - last) / 1000)); last = nw;
         if (m.state === "stopping") return res();
-        if (m.state !== "paused") t += d * S.pov / 100;
-        const u = Math.min(1, t / plan.duration), s = Math.max(0, u - Math.sin(2 * Math.PI * u) / (2 * Math.PI));
-        const f = s * (n - 1), i = Math.max(0, Math.min(n - 2, Math.floor(f))), w = f - i;
-        setJoints(keys[i].map((v, k) => v + (keys[i + 1][k] - v) * w), true);
+        const sample = tt => { const uu = Math.min(1, tt / plan.duration), ss = Math.max(0, uu - Math.sin(2 * Math.PI * uu) / (2 * Math.PI)); const ff = ss * (n - 1), ii = Math.max(0, Math.min(n - 2, Math.floor(ff))), ww = ff - ii; return keys[ii].map((v, k) => v + (keys[ii + 1][k] - v) * ww); };
+        if (m.state !== "paused") {
+          let nt = t + d * S.pov / 100;
+          if (S.tcpLimit && d > 0) { const tp = j => { const M = RL.mul(RL.fk(j).F6, RL.frameToMat(S.tool)); return [M[3], M[7], M[11]]; }; const a = tp(sample(t)), b = tp(sample(nt)), dist = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]), lim = S.tcpLimit * d; if (dist > lim) nt = t + (nt - t) * lim / dist; }
+          t = nt;
+        }
+        const u = Math.min(1, t / plan.duration);
+        setJoints(sample(t), true);
         if (u >= 1) { setJoints(keys[n - 1], true); return res(); }
         requestAnimationFrame(frame);
       };
@@ -1090,5 +1101,7 @@ document.querySelectorAll(".rz").forEach(h => h.addEventListener("pointerdown", 
   applyTheme(store.settings.theme || "escuro"); setTool(RL.DEFAULT_TOOL); setCam("iso"); resize();
   openProject(store.currentId); renderBackupInfo(); setStatus("idle");
   log("info", `Korum ${APP_VERSION} pronto. ${store.projects.length} projeto(s) na biblioteca. F5 executa, F10 executa passo a passo, Ctrl+S salva uma versão.`);
+  initKCP({ S, store, cur, RL, $, esc, hlLine, log, toast, ask, askText, openProject, newProject, runProgram, setJoints, quickMove, setOut, resetCell, curPos, tcpWorld,
+    parts: () => parts.map(partPos), partsRaw: () => parts, progName, markDirty, persist, saveVersion, previewPoints, makeZip, platform, stamp, safe, showPane, setFile, updateNames, check, EXAMPLES, SCENES, applyScene, openExample, flashObstacle, showHelp: () => $("mHelp").classList.add("on"), APP_VERSION });
   window.__korum = { S, store, runProgram, analyze, evaluate: id => evaluate(EXERCISES.find(x => x.id === id)), startExercise: id => startExercise(EXERCISES.find(x => x.id === id), true), cur, showPane, parts: () => parts.map(partPos), sendChat, krlToBlocks, blocksToKrl, openExample };
 })();

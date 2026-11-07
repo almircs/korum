@@ -167,6 +167,90 @@ section{background:var(--panel);min-width:0;min-height:0;display:flex;flex-direc
 .rep td{font-size:12.5px} .rep td:first-child{color:var(--mut);font-family:var(--sans);white-space:normal}
 body.full main{grid-template-columns:54px 0 0 1fr 0 0;grid-template-rows:1fr 0 0}
 body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
+/* ===== Modo painel ===== */
+body.kcp main{grid-template-columns:54px var(--left) 5px 1fr 0 0;grid-template-rows:1fr 0 0}
+body.kcp #right,body.kcp #console,body.kcp .rz.h,body.kcp .rz[data-rz=right]{display:none}
+#p-kcp{background:#8c96a0}
+.kpanel{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;background:#d4d0c8;color:#000;font:12px/1.35 Tahoma,"Segoe UI",Arial,sans-serif;border:2px solid #0a246a}
+.kpanel button{font:inherit;color:#000;background:#d4d0c8;border:2px outset #f4f2ee;border-radius:0;padding:2px 6px;box-shadow:none}
+.kpanel button:hover:not(:disabled){border-color:#f4f2ee;background:#e0ddd6}
+.kpanel button:active{border-style:inset}
+.kpanel button:disabled{color:#8a8a8a}
+.k-tb{display:flex;gap:8px;align-items:center;background:linear-gradient(90deg,#0a246a,#a6caf0);color:#fff;font-weight:700;padding:2px 6px;flex:none}
+.k-tbt{font-weight:400;opacity:.9;margin-left:auto;font-size:11px}
+.k-menu{display:flex;gap:2px;background:#d4d0c8;border-bottom:1px solid #808080;padding:1px 4px;flex:none}
+.k-menu span{padding:2px 8px;cursor:default} .k-menu span:hover{background:#0a246a;color:#fff}
+.k-pop{position:absolute;display:none;z-index:20;background:#e4f0dc;border:1px solid #556b55;box-shadow:2px 2px 0 #555;min-width:240px;padding:2px 0}
+.k-pop div{padding:3px 12px;cursor:default} .k-pop div:hover{background:#0a246a;color:#fff} .k-pop hr{border:0;border-top:1px solid #9aa;margin:2px 0}
+.k-row{flex:1;display:flex;min-height:0}
+.k-main{flex:1;min-width:0;background:#f4f4ee;border:2px inset #f4f2ee;margin:2px;overflow:auto;position:relative}
+.k-side{width:96px;flex:none;display:flex;flex-direction:column;gap:3px;padding:3px;background:#6f8f6f;overflow:auto}
+.k-key{width:100%;padding:3px 0!important;font-size:11px!important;line-height:1.1!important;text-align:center}
+.k-key b{font-size:13px}
+.k-mode{background:#ffe680!important;font-weight:700;font-size:14px!important}
+.k-key.on{background:#7ee07e!important} .k-key.off{background:#f08080!important} .k-key.en{background:#7ee07e!important}
+.k-start{background:#b8f0b8!important;font-weight:700} .k-start.on{background:#2fbf2f!important;color:#fff!important}
+.k-stop{background:#f4b0b0!important;font-weight:700}
+.k-ov{display:flex;align-items:center;gap:2px;background:#d4d0c8;padding:2px} .k-ov button{width:24px;padding:2px 0!important} .k-ov div{flex:1;text-align:center;line-height:1} .k-ov small{display:block;font-size:9px}
+.k-coord{background:#cfe0ff!important}
+.k-jog{display:flex;align-items:center;gap:2px} .k-jog button{width:30px;padding:3px 0!important;font-weight:700} .k-jog span{flex:1;text-align:center;color:#fff;font-weight:700;font-family:var(--mono)}
+.k-rm{color:#fff;text-align:center;font:600 11px var(--mono);margin-top:auto}
+.k-msgs{height:92px;flex:none;overflow:auto;background:#fff;border:2px inset #f4f2ee;margin:0 2px}
+.k-msgs table{border-collapse:collapse;width:100%;font-size:11px} .k-msgs th{background:#d4d0c8;text-align:left;font-weight:400;border-right:1px solid #999;padding:0 4px;position:sticky;top:0}
+.k-msgs td{padding:0 4px;white-space:nowrap} .k-msgs td:last-child{white-space:normal;width:100%}
+.k-msgs tr.sel{background:#00e0e0} .k-msgs tr.quit td:first-child{color:#c00} .k-msgs tr.state td:first-child{color:#b07000} .k-msgs tr.info td:first-child{color:#0040c0}
+.k-status{display:flex;gap:2px;flex:none;background:#d4d0c8;padding:1px 2px;font-size:11px}
+.k-status span{border:1px inset #f4f2ee;padding:0 5px;white-space:nowrap} .k-status .k-pn{flex:1;overflow:hidden}
+.k-sir i{font-style:normal;font-weight:700;padding:0 3px;margin:0 1px;color:#fff;background:#888}
+.k-sir i.ok{background:#1aa01a} .k-sir i.e{background:#d01818} .k-sir i.w{background:#e0b000;color:#000} .k-sir i.g{background:#999}
+.k-soft{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:2px;flex:none;background:#d4d0c8}
+.k-soft button{height:26px;font-size:11px}
+.k-note{font-size:11px;color:#444;margin:6px 4px}
+.k-empty{padding:30px;text-align:center;color:#555}
+.k-lh{background:#2e7d7d;color:#fff;padding:2px 6px;font-weight:700}
+.k-nav{display:grid;grid-template-columns:200px 1fr;grid-template-rows:1fr auto;height:100%}
+.k-tree{border-right:1px solid #999;padding:2px 4px;background:#fff;overflow:auto} .k-tree div{padding:1px 2px;cursor:default;white-space:nowrap}
+.k-tree .ind{padding-left:14px} .k-tree .ind2{padding-left:28px} .k-tree .on{background:#0a246a;color:#fff}
+.k-filter{background:#d4d0c8;border:1px solid #999;margin-bottom:3px}
+.k-list{overflow:auto;background:#fff} .k-list table{border-collapse:collapse;width:100%;font-size:11.5px} .k-list th{background:#d4d0c8;text-align:left;font-weight:400;padding:1px 4px;border-right:1px solid #999;position:sticky;top:0}
+.k-list td{padding:0 4px;white-space:nowrap} .k-list tr.sel{background:#0a246a;color:#fff} .k-list tr.act td:first-child{font-weight:700}
+.k-cnt{grid-column:1/-1;background:#d4d0c8;border-top:1px solid #999;padding:0 4px;font-size:11px}
+.k-ed{display:flex;flex-direction:column;height:100%}
+.k-code{flex:1;overflow:auto;background:#fff;font:12.5px/18px var(--mono);white-space:pre;padding:2px 0}
+.k-code div{padding-right:6px} .k-code .ln{display:inline-block;width:34px;text-align:right;color:#888;margin-right:2px} .k-code .ar{display:inline-block;width:18px;color:#0a246a;font-weight:700}
+.k-code div.ip{background:#fff2a8}
+.k-code .k{color:#7c3aed}.k-code .m{color:#c2410c}.k-code .t{color:#0f766e}.k-code .c{color:#6b7280}.k-code .n{color:#b45309}.k-code .s{color:#15803d}.k-code .v{color:#1d4ed8}.k-code .e{color:#a16207}
+.k-ed textarea{flex:1;font:12.5px/18px var(--mono);border:0;outline:0;resize:none;padding:4px;background:#fff;color:#000;white-space:pre}
+.k-path{background:#d4d0c8;border-top:1px solid #999;padding:0 4px;font-size:11px}
+.k-hmi{display:flex;flex-direction:column;height:100%;background:#d4d0c8}
+.k-htop{display:flex;gap:8px;background:#0a246a;color:#fff;padding:2px 6px;font-weight:700} .k-ht{flex:1} .k-hsel{background:#fff;color:#0a246a;padding:0 4px}
+.k-hst{background:#d4d0c8;border:2px inset #f4f2ee;margin:2px 4px;padding:2px 6px;text-align:center} .k-hst.warn{background:#ffe600}
+.k-hform{text-align:right;font-size:11px;padding:0 6px}
+.k-hbody{flex:1;display:flex;gap:4px;padding:4px}
+.k-hrows{flex:1;display:flex;flex-direction:column;gap:4px}
+.k-hr{display:grid;grid-template-columns:20px 1fr 1fr 20px;gap:4px;align-items:center;min-height:24px;cursor:default}
+.k-hr i{font-style:normal;text-align:center;color:#444}
+.k-hr span{border:1px solid #808080;background:#e8e6e0;padding:2px 6px;min-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-hr span.yl{background:#ffff00} .k-hr span.cy{background:#00ffff}
+.k-hpm{display:flex;flex-direction:column;gap:8px;justify-content:center} .k-hpm button{width:44px;height:44px;font-size:22px!important;font-weight:700}
+.k-hpm button[data-pm="-1"]{background:#ffff60!important} .k-hpm button[data-pm="1"]{background:#60ffff!important}
+.k-hgroups{display:flex;flex-wrap:wrap;gap:2px;padding:4px;border-top:1px solid #999} .k-hgroups button.on{background:#0a246a!important;color:#fff!important}
+.k-io{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px} .k-io table{border-collapse:collapse;width:100%;background:#fff} .k-io td{border-bottom:1px solid #ddd;padding:1px 4px;cursor:default;font-size:11.5px}
+.k-led{display:inline-block;width:12px;height:12px;border-radius:50%;background:#bbb;border:1px solid #666} .k-led.on{background:#20d020}
+.k-var{padding:4px} .k-vr{display:flex;gap:6px;align-items:center;margin:6px 0} .k-vr label{width:80px}
+.k-vr input{flex:1;font:12px var(--mono);color:#000;background:#fff;border:2px inset #f4f2ee;border-radius:0}
+.k-vv{flex:1;font:12px var(--mono);background:#e8ffe8;border:2px inset #f4f2ee;padding:3px;min-height:22px;word-break:break-all}
+.k-vq{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0} .k-vq button.on{background:#0a246a!important;color:#fff!important}
+.k-mt,.k-ct{border-collapse:collapse;width:100%;background:#fff;margin-top:4px} .k-mt td,.k-ct td,.k-ct th{border-bottom:1px solid #ddd;padding:3px 6px} .k-mt tr.sel{background:#0a246a;color:#fff}
+.k-mt b.ok{color:#108010} .k-mt b.e{color:#c00} .k-ct .a{background:#fff;text-align:right;font-family:var(--mono)} .k-ct .n{background:#c8f0c8;text-align:right;font-family:var(--mono)} .k-ct th{background:#2e7d7d;color:#fff;font-weight:400}
+.k-dlg{margin:14px;padding:12px 16px;background:#00e8e8;border:1px solid #088} .k-dlg p{margin:6px 0}
+.k-dlg input{color:#000;background:#fff;border:2px inset #f4f2ee;border-radius:0}
+.k-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px} .k-modes button{text-align:left;padding:6px!important} .k-modes button small{display:block;font-size:11px;margin-top:2px} .k-modes button.on{background:#ffe680!important}
+.k-pal{width:260px;margin:8px auto;display:flex;flex-direction:column;gap:2px}
+.k-pal div{display:grid;grid-template-columns:22px 1fr 70px;align-items:center;height:16px;background:#e8e8e8;border:1px solid #bbb;font-size:10.5px}
+.k-pal div span{text-align:center} .k-pal div b{height:100%;background:#3cc03c;display:block} .k-pal div em{font-style:normal;text-align:right;padding-right:3px}
+.k-pal .wood{height:12px;background:repeating-linear-gradient(90deg,#b07a3a 0 30px,#7a5020 30px 40px);border:0}
+body.kcp header .grp,body.kcp header .pov,body.kcp header .sep{display:none}
 </style>
 </head>
 <body>
@@ -198,6 +282,7 @@ body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
     <button data-p="exerc" title="Exercícios com avaliação"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Exercícios</button>
     <button data-p="cena" title="Cenário da célula"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>Cenário</button>
     <button data-p="analise" title="Análise e engenharia reversa"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>Análise</button>
+    <button data-p="kcp" title="Modo painel do robô (teach pendant)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="15" rx="2"/><rect x="6" y="7" width="9" height="7" rx="1"/><path d="M18 8v1M18 11v1M18 14v1M7 17h8"/></svg>Painel</button>
     <button data-p="ia" title="Professor de robótica com IA"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>Professor</button>
     <div class="sp"></div>
     <button data-p="config" title="Configurações"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
@@ -254,6 +339,8 @@ body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
         <div id="report"></div>
       </div>
     </div>
+    <!-- PAINEL -->
+    <div class="pane" id="p-kcp"></div>
     <!-- IA -->
     <div class="pane" id="p-ia"><div class="ph">Professor de robótica (IA)<div class="sp"></div><button class="sm" id="bChatClear">Nova conversa</button></div>
       <div class="chat" id="chat"></div>
@@ -341,6 +428,15 @@ body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
 <tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>
 <tr><td>SIN COS TAN ACOS ATAN2 SQRT ABS</td><td>Funções (graus).</td></tr>
 </table>
+<h3>Modo Painel (barra da esquerda → Painel)</h3>
+<ul>
+<li>Tela no estilo de um painel de programação de controlador, ao lado do robô 3D: menus, Navegador, programa com a seta de execução, janela de mensagens com <b>Ackn.</b>, barra de status (S I R, IP, modo, POV) e teclas laterais.</li>
+<li>Sequência básica: <b>Acion.</b> (ligar acionamentos) → Navegador → <b>Selecionar</b> → em T1/T2 ligue <b>Habil.</b> e <b>segure Start</b> (soltou, o robô para). Em AUT basta um toque em Start; em EXT a partida vem do CLP pela entrada $IN[8].</li>
+<li>T1 limita a velocidade da ferramenta a 250 mm/s. Modos de execução GO, MSTEP (para a cada movimento) e ISTEP (a cada instrução) no menu Programa.</li>
+<li>Jog contínuo pelas teclas − / + (Eixos, Base ou Ferramenta), com HOV pelo override.</li>
+<li>Grupos de usuário Operador, Usuário e Expert (senha <code>korum</code>). Expert cria, edita, apaga, desajusta eixos e força saídas.</li>
+<li><b>Ctrl+F12</b> abre a IHM da célula: funções manuais em pares (amarelo = tecla −, ciano = tecla +), status Hxxx, formação da camada do palete e contadores.</li>
+</ul>
 <h3>Limitações</h3>
 <ul>
 <li>Aproximações (<code>C_PTP</code>, <code>C_DIS</code>) são aceitas, mas o robô para em cada ponto.</li>

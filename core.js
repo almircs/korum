@@ -792,6 +792,7 @@ const RL = (function () {
     }
   }
 
-  return { GEO, LIMITS, HOME, DEFAULT_TOOL, setObstacles, getObstacles, quatToMat, matToQuat, fk, ik, mul, inv, frameToMat, matToFrame, parse, Machine, KrlError, checkCollision, tokenize, D2R, R2D };
+  function evalExpr(machine, text) { const loc = { file: "var", line: 1 }; return machine.eval(parseExprToks(tokenize(text, loc), loc), null, loc); }
+  return { evalExpr, GEO, LIMITS, HOME, DEFAULT_TOOL, setObstacles, getObstacles, quatToMat, matToQuat, fk, ik, mul, inv, frameToMat, matToFrame, parse, Machine, KrlError, checkCollision, tokenize, D2R, R2D };
 })();
 if (typeof module !== "undefined") module.exports = RL;
