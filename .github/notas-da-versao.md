@@ -11,7 +11,13 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.3.0 — Linha de pacotes
+## Novidades da versão 1.4.0 — Modo Iniciante e Profissional
+- Ao abrir o Korum pela primeira vez, você escolhe **Iniciante** ou **Profissional**. Dá para trocar a qualquer momento no botão no topo da tela
+- **Iniciante:** tela simplificada (sem Projetos, Cenário, Análise e Painel; jog só em X, Y e Z; "Velocidade" no lugar de "Override"), exemplos selecionados e **dicas em linguagem simples** no console quando dá erro
+- Roteiro guiado **Primeiros passos** com 10 missões conferidas sozinhas: girar a vista, mover um eixo, HOME, abrir e executar um programa, mudar um ponto, ensinar um ponto, programar com blocos, pegar uma peça e fazer o primeiro exercício. A missão atual destaca na tela onde clicar
+- **Profissional:** todas as ferramentas, como antes
+
+## Versão 1.3.0 — Linha de pacotes
 - Novo cenário **Linha de pacotes**: esteira de entrada motorizada (`$OUT[6]`) que traz pacotes de garrafas com filme, acumula no batente e liga o sensor `$IN[1]` sozinha, e um palete
 - **T21 · Esteira com pacotes e palete de camadas cruzadas**: 3 camadas de 8 pacotes, camada do meio girada 90°
 - **T22 · Esteira: contar pacotes com o sensor**

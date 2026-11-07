@@ -75,6 +75,7 @@ function log(lvl, msg, loc) {
   const m = document.createElement("span"); m.className = "lm"; m.textContent = msg; d.appendChild(m);
   const box = $("log"); box.appendChild(d); while (box.children.length > 800) box.firstChild.remove(); box.scrollTop = box.scrollHeight;
   if (S.onLog) S.onLog(lvl, msg, loc);
+  if (store.settings.nivel === "iniciante" && (lvl === "err" || (lvl === "info" && /Aguardando condição/.test(msg)))) { const hnt = HINTS.find(x => x[0].test(msg)); if (hnt) setTimeout(() => log("ok", "💡 Dica: " + hnt[1]), 0); }
   S.logTail.push(`${L}${loc && loc.line ? ` (${loc.file}:${loc.line})` : ""}: ${msg}`); if (S.logTail.length > 30) S.logTail.shift();
 }
 let toastT; function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = "none", 2400); }
@@ -86,7 +87,7 @@ function ask(title, html, buttons) { // buttons: [{label, value, pri, danger}]
   });
 }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest(".modal").classList.remove("on"));
-document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m && m.id !== "mAsk") m.classList.remove("on"); }));
+document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m && m.id !== "mAsk" && m.id !== "mNivel") m.classList.remove("on"); }));
 
 // ======================= ESTADO DA SESSÃO =======================
 const S = { joints: RL.HOME.slice(), file: "src", ins: new Array(9).fill(false), outs: new Array(65).fill(false), pov: 100,
@@ -111,6 +112,7 @@ function showPane(p) {
   if (p === "analise") renderRevInfo();
   if (p === "ia") renderChat();
   if (p === "config") renderConfig();
+  if (p === "inicio") renderTour();
 }
 document.querySelectorAll("#nav button[data-p]").forEach(b => b.onclick = () => showPane(b.dataset.p));
 
@@ -148,7 +150,7 @@ ta.addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault();
 document.addEventListener("keydown", e => {
   if (e.key === "F5") { e.preventDefault(); runProgram(false); }
   if (e.key === "F10") { e.preventDefault(); runProgram(true); }
-  if (e.key === "Escape") document.querySelectorAll(".modal.on").forEach(m => m.id !== "mAsk" && m.classList.remove("on"));
+  if (e.key === "Escape") document.querySelectorAll(".modal.on").forEach(m => m.id !== "mAsk" && m.id !== "mNivel" && m.classList.remove("on"));
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (saveVersion("Salvo manualmente")) toast("Versão salva no histórico"); persist(); }
 });
 function setFile(f) { S.file = f; const p = cur(); ta.value = p ? p[f] : ""; $("tabSrc").classList.toggle("on", f === "src"); $("tabDat").classList.toggle("on", f === "dat"); render(); ta.scrollTop = 0; sync(); }
@@ -180,7 +182,7 @@ view.prepend(renderer.domElement);
 const css = new CSS2DRenderer(); css.domElement.style.cssText = "position:absolute;top:0;left:0;pointer-events:none"; view.appendChild(css.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 50);
-const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.dampingFactor = 0.12;
+const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.addEventListener("start", () => S.camMoved = true); controls.dampingFactor = 0.12;
 scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a1d22, 1.1));
 const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(2.5, 4, 2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 0.5, far: 10 }); sun.shadow.bias = -0.0005; scene.add(sun);
@@ -595,7 +597,7 @@ async function runProgram(stepping) {
   setStatus("running");
   const r = await m.run();
   S.running = false; S.machine = null; S.curLine = null; $("nowcmd").style.display = "none"; $("ins").classList.remove("waitio");
-  setStatus(r === "error" ? "error" : "idle"); render(); fillGo();
+  setStatus(r === "error" ? "error" : "idle"); render(); fillGo(); S.lastRun = { r, t: Date.now() };
   return r;
 }
 $("bRun").onclick = () => runProgram(false);
@@ -607,7 +609,12 @@ $("bReset").onclick = () => resetCell(false);
 $("pov").oninput = e => { S.pov = +e.target.value; $("povv").textContent = S.pov + "%"; };
 $("bClear").onclick = () => $("log").innerHTML = "";
 $("bHelp").onclick = () => $("mHelp").classList.add("on");
-$("examples").innerHTML = `<option value="">Exemplos…</option>` + [...new Set(EXAMPLES.map(e => e.cat))].map(c => `<optgroup label="${esc(c)}">${EXAMPLES.filter(e => e.cat === c).map(e => `<option value="${e.id}">${esc(e.title)}</option>`).join("")}</optgroup>`).join("");
+const BEG_EX = ["basico", "b01", "b02", "quadrado", "circ", "pick", "p22"];
+function fillExamples() {
+  const list = store.settings.nivel === "iniciante" ? EXAMPLES.filter(e => BEG_EX.includes(e.id)) : EXAMPLES;
+  $("examples").innerHTML = `<option value="">Exemplos…</option>` + [...new Set(list.map(e => e.cat))].map(c => `<optgroup label="${esc(c)}">${list.filter(e => e.cat === c).map(e => `<option value="${e.id}">${esc(e.title)}</option>`).join("")}</optgroup>`).join("");
+}
+fillExamples();
 $("examples").onchange = () => { const e = EXAMPLES.find(x => x.id === $("examples").value); $("examples").value = ""; if (e) openExample(e); };
 function openExample(e) {
   const p = newProject({ name: "Exemplo: " + e.title, cat: e.cat, src: e.src, dat: e.dat, scene: SCENES[e.scene || "pick"] });
@@ -1139,6 +1146,72 @@ $("cfgModel").onchange = () => { store.settings.model = $("cfgModel").value.trim
 $("bCfgDir").onclick = async () => { const d = await platform.chooseDir(); if (d) { store.settings.backupDir = d; markDirty(); renderConfig(); renderBackupInfo(); } else if (!K) toast("Disponível no aplicativo instalado"); };
 $("bOpenData").onclick = () => platform.openData();
 
+// ======================= NÍVEIS: INICIANTE / PROFISSIONAL =======================
+const HINTS = [
+  [/fora do alcance/i, "o robô não alcança esse ponto. Use X e Y menores (mais perto da base do robô) ou uma altura Z menor."],
+  [/limite do eixo|fora do limite/i, "um dos eixos chegaria ao fim de curso. Tente um ponto mais à frente do robô (X positivo)."],
+  [/COLIS/i, "alguma parte do robô bateria num objeto. Suba o ponto (Z maior) ou crie antes um ponto de aproximação acima do objeto."],
+  [/não declarad/i, "todo ponto ou variável precisa existir antes de ser usado. Crie no arquivo .dat com DECL ou use o botão ⊕ Ponto para gravar a posição atual."],
+  [/singularidade/i, "o punho do robô ficou numa posição \"esticada\" difícil. Troque o LIN por PTP ou incline um pouco a ferramenta (B 85 em vez de B 90)."],
+  [/esperado|inesperado|não reconhecida|fora de lugar|sem THEN|sintaxe/i, "parece um erro de digitação na linha indicada (clique no link src:N para ir até ela). Compare com os exemplos: um comando por linha e cada IF/FOR/LOOP fechado com ENDIF/ENDFOR/ENDLOOP."],
+  [/Aguardando condição/i, "o programa está esperando um sinal. Clique no botão IN indicado no painel da direita (Entradas $IN)."],
+  [/Verificação: \d+ erro/i, "o programa tem erro de escrita e não foi executado. A linha com problema fica vermelha no editor."],
+];
+function applyNivel(n, silent) {
+  store.settings.nivel = n; document.body.classList.toggle("beginner", n === "iniciante");
+  document.querySelectorAll("#nivelSw button").forEach(b => b.classList.toggle("on", b.dataset.n === n));
+  fillExamples();
+  const pro = ["projetos", "cena", "analise", "kcp"];
+  if (n === "iniciante" && pro.includes(S.pane)) showPane("inicio");
+  if (n !== "iniciante" && S.pane === "inicio") showPane("prog");
+  if (!silent) { markDirty(); toast(n === "iniciante" ? "Modo Iniciante: tela simplificada e roteiro guiado" : "Modo Profissional: todas as ferramentas"); }
+}
+document.querySelectorAll("#nivelSw button").forEach(b => b.onclick = () => { applyNivel(b.dataset.n); if (b.dataset.n === "iniciante") showPane("inicio"); });
+document.querySelectorAll("[data-nv]").forEach(b => b.onclick = () => { $("mNivel").classList.remove("on"); applyNivel(b.dataset.nv); showPane(b.dataset.nv === "iniciante" ? "inicio" : "prog"); });
+// ---- roteiro "Primeiros passos" ----
+const countDecl = d => (d.match(/^\s*DECL\s/gim) || []).length;
+const ranSince = c => S.lastRun && S.lastRun.r === "done" && S.lastRun.t > c.t0;
+const TOUR = [
+  { t: "Conheça o simulador", p: "Este é um robô industrial de 6 eixos, com uma mesa e uma esteira. <b>Arraste o mouse</b> sobre a imagem 3D para girar a vista e use a <b>roda do mouse</b> para aproximar ou afastar.", where: "#view", check: () => S.camMoved },
+  { t: "Mova um eixo", p: "No painel da direita, arraste o controle <b>A1</b>. É a base do robô girando. Cada controle de A1 a A6 move uma junta do braço, como o ombro, o cotovelo e o punho de um braço humano.", where: "#axes", check: () => Math.abs(S.joints[0]) > 20 },
+  { t: "Volte para HOME", p: "Clique em <b>HOME</b>, acima dos controles. HOME é a posição segura de onde todo programa começa e onde termina.", where: "#bHome", check: () => S.joints.every((v, i) => Math.abs(v - RL.HOME[i]) < 0.5) },
+  { t: "Abra seu primeiro programa", p: "Um programa de robô é uma lista de comandos, um por linha, lidos de cima para baixo. Clique no botão abaixo para abrir o exemplo <b>Movimentos básicos</b>.", btn: ["Abrir o exemplo", () => { openExample(EXAMPLES.find(e => e.id === "basico")); showPane("inicio"); }], check: () => cur() && /^basico$/i.test(progName(cur().src)) },
+  { t: "Execute o programa", p: "Clique em <b>▶ Executar</b> no topo da tela. A linha em execução fica destacada no editor e o robô cumpre cada comando:<br>• <b>PTP</b> leva o robô pelo caminho mais fácil para os motores (faz uma curva);<br>• <b>LIN</b> leva a garra em linha reta.<br>A linha laranja no 3D mostra o caminho percorrido.", where: "#bRun", check: c => ranSince(c) },
+  { t: "Mude um ponto", p: "Os pontos ficam no segundo arquivo, o <b>.dat</b>. Abra <b>Programa</b> na barra da esquerda, clique na aba <b>basico.dat</b> e, na linha do ponto <b>P1</b>, troque <code>Y 300</code> por <code>Y 150</code>. Depois clique em <b>▶ Executar</b> de novo e veja o robô ir a outro lugar.", where: "#tabDat", check: c => cur() && /^basico$/i.test(progName(cur().src)) && !/P1\s*=\s*\{X 450, Y 300,/.test(cur().dat) && ranSince(c) },
+  { t: "Ensine um ponto (teach)", p: "Assim os técnicos programam na fábrica: movem o robô até o lugar certo e gravam a posição.<br>1. Use os botões <b>X+</b>, <b>Y+</b> e <b>Z−</b> no painel da direita para mover a garra.<br>2. Abra <b>Programa</b> e clique em <b>⊕ Ponto</b>.<br>O Korum grava a posição no .dat e escreve <code>PTP P1</code> no programa.", where: "#jog", check: c => cur() && countDecl(cur().dat) > c.decl0 },
+  { t: "Programe com blocos", p: "Abra <b>Blocos</b> na barra da esquerda e clique em <b>+ Fechar garra</b> ou <b>+ Aguardar</b>. Os blocos montam o programa sem você digitar, e o código KRL é gerado sozinho na aba Programa.", where: "[data-p=blocos]", check: c => cur() && cur().blocks && cur().blocks.length > c.blk0 && cur().blocks.length > 0 },
+  { t: "Pegue uma peça", p: "Agora um trabalho de verdade: o robô pega a peça azul da mesa e coloca na esteira. Abra o exemplo e clique em <b>▶ Executar</b>. Repare na linha <code>$OUT[1] = TRUE</code>: é ela que fecha a garra.", btn: ["Abrir o exemplo Pick and place", () => { openExample(EXAMPLES.find(e => e.id === "pick")); showPane("inicio"); }], check: c => cur() && /^pick_place$/i.test(progName(cur().src)) && ranSince(c) },
+  { t: "Seu primeiro exercício", p: "Abra <b>Exercícios</b> na barra da esquerda e faça o <b>Primeiro movimento</b>. O Korum executa o seu programa, confere cada item e dá a nota. Se travar, pergunte ao <b>Professor</b>.", where: "[data-p=exerc]", check: () => (store.progress.exercises.x1 || {}).best === 100 },
+];
+function tourState() { if (!store.progress.tour) store.progress.tour = { i: 0, ctx: null }; const T = store.progress.tour; if (!T.ctx) T.ctx = tourCtx(); return T; }
+function tourCtx() { const p = cur(); return { t0: Date.now(), decl0: p ? countDecl(p.dat) : 0, blk0: p && p.blocks ? p.blocks.length : 0 }; }
+function tourGo(i) { const T = tourState(); T.i = Math.max(0, Math.min(TOUR.length, i)); T.ctx = tourCtx(); markDirty(); renderTour(); }
+function renderTour() {
+  const T = tourState(), box = $("tour"); $("tourProg").textContent = `${Math.min(T.i, TOUR.length)}/${TOUR.length}`;
+  document.querySelectorAll(".hilite").forEach(e => e.classList.remove("hilite"));
+  let html = `<p class="note">Missões curtas para aprender o básico. Cada uma é conferida sozinha: faça o que o cartão pede e ele avança.</p><div class="bar" style="margin:8px 0 12px"><i style="width:${Math.round(100 * T.i / TOUR.length)}%"></i></div>`;
+  if (T.i >= TOUR.length) html += `<div class="mission cur"><h4><span class="n">✓</span>Parabéns, você concluiu os primeiros passos!</h4><p>Agora você já sabe mover o robô, ler e executar um programa, mudar e ensinar pontos, usar blocos e pegar peças.</p><p>Próximos passos: a trilha de <b>Cursos</b> (comece pelo Nível 2), os outros <b>Exercícios</b> e, quando se sentir seguro, o modo <b>Profissional</b>, com cenários, modo painel do robô e análise de programas.</p>
+    <div class="row"><button class="pri" id="tCur">Abrir Cursos</button><button id="tPro">Mudar para Profissional</button><button id="tAgain">Recomeçar roteiro</button></div></div>`;
+  TOUR.forEach((m, i) => {
+    const st = i < T.i ? "done" : i === T.i ? "cur" : "";
+    if (st === "cur") html += `<div class="mission cur"><h4><span class="n">${i + 1}</span>${m.t}</h4><p>${m.p}</p>${m.btn ? `<div class="row"><button class="pri" id="tBtn">${m.btn[0]}</button></div>` : ""}<div class="row" style="margin-top:10px"><span class="note" style="margin:0;flex:1">⏳ Esperando você fazer a missão…</span>${i > 0 ? `<button class="sm" id="tBack">← Voltar</button>` : ""}<button class="sm" id="tSkip">Pular</button></div></div>`;
+    else html += `<div class="mission ${st}"><h4><span class="n">${st === "done" ? "✓" : i + 1}</span>${m.t}</h4></div>`;
+  });
+  box.innerHTML = html;
+  const m = TOUR[T.i];
+  if (m && m.btn) $("tBtn").onclick = m.btn[1];
+  if ($("tBack")) $("tBack").onclick = () => tourGo(T.i - 1);
+  if ($("tSkip")) $("tSkip").onclick = () => tourGo(T.i + 1);
+  if ($("tCur")) { $("tCur").onclick = () => showPane("cursos"); $("tPro").onclick = () => { applyNivel("profissional"); showPane("prog"); }; $("tAgain").onclick = () => tourGo(0); }
+  if (m && m.where) document.querySelectorAll(m.where).forEach(e => e.classList.add("hilite"));
+}
+setInterval(() => {
+  if (store.settings.nivel !== "iniciante") { document.querySelectorAll(".hilite").forEach(e => e.classList.remove("hilite")); return; }
+  const T = tourState(), m = TOUR[T.i]; if (!m) return;
+  let ok = false; try { ok = !!m.check(T.ctx); } catch (e) { }
+  if (ok) { toast(`✓ Missão concluída: ${m.t}`); log("ok", `Missão ${T.i + 1} concluída: ${m.t}`); tourGo(T.i + 1); if (S.pane !== "inicio") document.querySelector("[data-p=inicio]").classList.add("hilite"); }
+}, 600);
+
 // ======================= PAINÉIS REDIMENSIONÁVEIS =======================
 document.querySelectorAll(".rz").forEach(h => h.addEventListener("pointerdown", e => {
   e.preventDefault(); h.classList.add("drag"); h.setPointerCapture(e.pointerId); const k = h.dataset.rz, r = document.documentElement;
@@ -1157,6 +1230,7 @@ document.querySelectorAll(".rz").forEach(h => h.addEventListener("pointerdown", 
   if (!cur()) store.currentId = store.projects[0].id;
   applyTheme(store.settings.theme || "escuro"); setTool(RL.DEFAULT_TOOL); setCam("iso"); resize();
   openProject(store.currentId); renderBackupInfo(); setStatus("idle");
+  if (store.settings.nivel) { applyNivel(store.settings.nivel, true); if (store.settings.nivel === "iniciante") showPane("inicio"); } else { applyNivel("profissional", true); $("mNivel").classList.add("on"); }
   log("info", `Korum ${APP_VERSION} pronto. ${store.projects.length} projeto(s) na biblioteca. F5 executa, F10 executa passo a passo, Ctrl+S salva uma versão.`);
   initKCP({ S, store, cur, RL, $, esc, hlLine, log, toast, ask, askText, openProject, newProject, runProgram, setJoints, quickMove, setOut, resetCell, curPos, tcpWorld,
     parts: () => parts.map(partPos), partsRaw: () => parts, progName, markDirty, persist, saveVersion, previewPoints, makeZip, platform, stamp, safe, showPane, setFile, updateNames, check, EXAMPLES, SCENES, applyScene, openExample, flashObstacle, showHelp: () => $("mHelp").classList.add("on"), APP_VERSION });
