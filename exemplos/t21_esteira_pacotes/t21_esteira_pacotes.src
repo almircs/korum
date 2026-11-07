@@ -1,0 +1,48 @@
+DEF t21_esteira_pacotes()
+  ; Linha de paletização com esteira de entrada:
+  ;   $OUT[6] liga o motor da esteira; os pacotes chegam sozinhos e param no batente.
+  ;   $IN[1]  e o sensor de pacote no batente (a esteira liga o sinal sozinha).
+  ; O robo monta 3 camadas cruzadas de 8 pacotes:
+  ;   camadas 1 e 3 com o pacote a 0 grau, camada 2 girada 90 graus (amarracao).
+  DECL INT camada, n, fila, coluna
+  DECL REAL desce
+  DECL E6POS SOLTA
+  INI
+  $VEL.CP = 0.8
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE                 ; liga a esteira
+  FOR camada = 1 TO 3
+    desce = 200 - (camada - 1) * 50
+    FOR n = 1 TO 8
+      fila = 1
+      coluna = n
+      IF n > 4 THEN
+        fila = 2
+        coluna = n - 4
+      ENDIF
+      SOLTA = PALETE
+      IF camada == 2 THEN
+        SOLTA.X = PALETE.X + (coluna * 2 - 5) * 35
+        SOLTA.Y = PALETE.Y + (fila * 2 - 3) * 52.5
+        SOLTA.A = 90
+      ELSE
+        SOLTA.X = PALETE.X + (fila * 2 - 3) * 52.5
+        SOLTA.Y = PALETE.Y + (coluna * 2 - 5) * 35
+      ENDIF
+      WAIT FOR $IN[1]            ; espera pacote no batente
+      PTP PEGA
+      LIN_REL {Z -145}
+      $OUT[1] = TRUE
+      WAIT SEC 0.2
+      LIN_REL {Z 145}
+      PTP SOLTA
+      LIN_REL {Z -desce}
+      $OUT[1] = FALSE
+      WAIT SEC 0.15
+      LIN_REL {Z desce}
+    ENDFOR
+  ENDFOR
+  $OUT[6] = FALSE                ; desliga a esteira
+  PTP HOME
+END

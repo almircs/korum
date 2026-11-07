@@ -1,0 +1,4 @@
+DEFDAT t22_contar_pacotes
+  DECL E6POS PEGA = {X 504, Y 380, Z 320, A 0, B 90, C 0}
+  DECL E6POS DESCARTE = {X 450, Y -420, Z 350, A 0, B 90, C 0}
+ENDDAT

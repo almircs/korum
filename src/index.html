@@ -428,6 +428,10 @@ body.kcp header .grp,body.kcp header .pov,body.kcp header .sep{display:none}
 <tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>
 <tr><td>SIN COS TAN ACOS ATAN2 SQRT ABS</td><td>Funções (graus).</td></tr>
 </table>
+<h3>Esteira motorizada (cenário "Linha de pacotes")</h3>
+<ul><li><code>$OUT[6]</code> liga o motor da esteira de entrada; os pacotes (100 × 50 × 50 mm) entram sozinhos, andam e se acumulam no batente.</li>
+<li><code>$IN[1]</code> é o sensor do batente: liga sozinho quando há pacote parado no fim da esteira (a luz verde acende).</li>
+<li>Exemplos T21 (palete com camadas cruzadas) e T22 (contar pacotes). Na IHM do painel (Ctrl+F12 → peças e esteira) também dá para ligar e desligar a esteira.</li></ul>
 <h3>Modo Painel (barra da esquerda → Painel)</h3>
 <ul>
 <li>Tela no estilo de um painel de programação de controlador, ao lado do robô 3D: menus, Navegador, programa com a seta de execução, janela de mensagens com <b>Ackn.</b>, barra de status (S I R, IP, modo, POV) e teclas laterais.</li>

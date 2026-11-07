@@ -1,0 +1,6 @@
+DEFDAT t21_esteira_pacotes
+  ; PEGA: 145 mm acima do pacote parado no batente
+  DECL E6POS PEGA = {X 504, Y 380, Z 320, A 0, B 90, C 0}
+  ; PALETE: centro do palete, altura de aproximacao
+  DECL E6POS PALETE = {X 450, Y -420, Z 350, A 0, B 90, C 0}
+ENDDAT

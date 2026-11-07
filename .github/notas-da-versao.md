@@ -11,7 +11,14 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.2.0 — Modo Painel
+## Novidades da versão 1.3.0 — Linha de pacotes
+- Novo cenário **Linha de pacotes**: esteira de entrada motorizada (`$OUT[6]`) que traz pacotes de garrafas com filme, acumula no batente e liga o sensor `$IN[1]` sozinha, e um palete
+- **T21 · Esteira com pacotes e palete de camadas cruzadas**: 3 camadas de 8 pacotes, camada do meio girada 90°
+- **T22 · Esteira: contar pacotes com o sensor**
+- Peças agora podem ter tamanhos diferentes e mantêm o giro ao serem soltas (empilhamento cruzado)
+- IHM do painel: ligar e desligar a esteira de entrada
+
+## Versão 1.2.0 — Modo Painel
 Novo botão **Painel** na barra da esquerda: uma tela no estilo do painel de programação do controlador, ao lado do robô 3D.
 - Menus Arquivo, Programa, Configurar, Monitor, Setup, Comandos, Tecnologia e Ajuda
 - **Navegador** (pastas Programa e Exemplos) com Novo, Selecionar, Duplicar, Arquivar, Apagar e Abrir

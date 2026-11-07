@@ -1113,3 +1113,94 @@ END`, dat: `DEFDAT t19_singularidade\n${P("S_ESQ", 635, -250, 885, 0)}\n${P("S_D
   PTP HOME
 END`, dat: `DEFDAT t20_limites\n${P("LONGE", 1100, 0, 600)}\n${P("ABAIXO", 600, 0, -30)}\nENDDAT` },
 );
+
+// ================== Linha de pacotes com esteira motorizada (v1.3) ==================
+SCENES.pacotes = { nome: "Linha de pacotes (esteira + palete)", objetos: [
+  { tipo: "esteira", nome: "Esteira de entrada", x: 205, y: 380, w: 710, d: 140, h: 150, motor: 6, sensor: 1, vel: 220, gerar: { intervalo: 1.2, tamanho: [100, 50, 50], tipo: "pacote", max: 40 } },
+  { tipo: "palete", nome: "Palete", x: 450, y: -420, w: 400, d: 400, h: 120 }], pecas: [] };
+EXAMPLES.push(
+{ id: "p21", cat: "Paletização", scene: "pacotes", title: "T21 · Esteira com pacotes e palete de camadas cruzadas", src:
+`DEF t21_esteira_pacotes()
+  ; Linha de paletização com esteira de entrada:
+  ;   $OUT[6] liga o motor da esteira; os pacotes chegam sozinhos e param no batente.
+  ;   $IN[1]  e o sensor de pacote no batente (a esteira liga o sinal sozinha).
+  ; O robo monta 3 camadas cruzadas de 8 pacotes:
+  ;   camadas 1 e 3 com o pacote a 0 grau, camada 2 girada 90 graus (amarracao).
+  DECL INT camada, n, fila, coluna
+  DECL REAL desce
+  DECL E6POS SOLTA
+  INI
+  $VEL.CP = 0.8
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE                 ; liga a esteira
+  FOR camada = 1 TO 3
+    desce = 200 - (camada - 1) * 50
+    FOR n = 1 TO 8
+      fila = 1
+      coluna = n
+      IF n > 4 THEN
+        fila = 2
+        coluna = n - 4
+      ENDIF
+      SOLTA = PALETE
+      IF camada == 2 THEN
+        SOLTA.X = PALETE.X + (coluna * 2 - 5) * 35
+        SOLTA.Y = PALETE.Y + (fila * 2 - 3) * 52.5
+        SOLTA.A = 90
+      ELSE
+        SOLTA.X = PALETE.X + (fila * 2 - 3) * 52.5
+        SOLTA.Y = PALETE.Y + (coluna * 2 - 5) * 35
+      ENDIF
+      WAIT FOR $IN[1]            ; espera pacote no batente
+      PTP PEGA
+      LIN_REL {Z -145}
+      $OUT[1] = TRUE
+      WAIT SEC 0.2
+      LIN_REL {Z 145}
+      PTP SOLTA
+      LIN_REL {Z -desce}
+      $OUT[1] = FALSE
+      WAIT SEC 0.15
+      LIN_REL {Z desce}
+    ENDFOR
+  ENDFOR
+  $OUT[6] = FALSE                ; desliga a esteira
+  PTP HOME
+END`, dat: `DEFDAT t21_esteira_pacotes
+  ; PEGA: 145 mm acima do pacote parado no batente
+  DECL E6POS PEGA = {X 504, Y 380, Z 320, A 0, B 90, C 0}
+  ; PALETE: centro do palete, altura de aproximacao
+  DECL E6POS PALETE = {X 450, Y -420, Z 350, A 0, B 90, C 0}
+ENDDAT` },
+{ id: "p22", cat: "Integração com sensores", scene: "pacotes", title: "T22 · Esteira: contar pacotes com o sensor", src:
+`DEF t22_contar_pacotes()
+  ; Liga a esteira e conta os pacotes: a cada pacote no batente o robo
+  ; retira e descarta no palete (sem arrumar). Para depois de 6 pacotes.
+  ; Observe IN 1 acender e apagar no painel de E/S.
+  DECL INT cont
+  INI
+  $VEL.CP = 0.8
+  cont = 0
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE
+  WHILE cont < 6
+    WAIT FOR $IN[1]
+    PTP PEGA
+    LIN_REL {Z -145}
+    $OUT[1] = TRUE
+    WAIT SEC 0.2
+    LIN_REL {Z 145}
+    PTP DESCARTE
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    cont = cont + 1
+  ENDWHILE
+  $OUT[6] = FALSE
+  PTP HOME
+END`, dat: `DEFDAT t22_contar_pacotes
+  DECL E6POS PEGA = {X 504, Y 380, Z 320, A 0, B 90, C 0}
+  DECL E6POS DESCARTE = {X 450, Y -420, Z 350, A 0, B 90, C 0}
+ENDDAT` },
+);

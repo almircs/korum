@@ -36,3 +36,5 @@ Os mesmos programas também aparecem no menu **Exemplos** do editor, já com o c
 | T20 · Diagnóstico: limites e alcance | `t20_limites` | Célula vazia |
 
 Os programas T19 e T20 têm erros de propósito, para treinar diagnóstico. T07 e T18 esperam sinais nas entradas: leia os comentários no início de cada um.
+| T21 · Esteira com pacotes e palete de camadas cruzadas | `t21_esteira_pacotes` | Linha de pacotes (esteira + palete) |
+| T22 · Esteira: contar pacotes com o sensor | `t22_contar_pacotes` | Linha de pacotes (esteira + palete) |

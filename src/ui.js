@@ -268,6 +268,8 @@ function buildObject(o, id, grp) {
     ms.push(mesh(box(w, Math.max(10, d - 70), 20), mat.belt, grp, [x, y, h - 10]));
     mesh(box(w, 18, 34), mat.yellow, grp, [x, y - d / 2 + 9, h - 17]); mesh(box(w, 18, 34), mat.yellow, grp, [x, y + d / 2 - 9, h - 17]);
     for (let sx = x - w / 2 + 30; sx < x + w / 2; sx += 70) mesh(box(6, Math.max(10, d - 70), 1), mat.stripe, grp, [sx, y, h + 0.6]);
+    if (o.sensor) { mesh(box(6, d - 20, 36), mat.yellow, grp, [x + w / 2 - 3, y, h + 18]); sensorMeshes[id] = mesh(box(14, 14, 14), new THREE.MeshBasicMaterial({ color: 0x444444 }), grp, [x + w / 2 - 30, y + d / 2 - 2, h + 40]); }
+    if (o.motor) mesh(cylY(28, 50), mat.dark, grp, [x - w / 2 + 40, y + d / 2 + 25, h - 40]);
   } else if (o.tipo === "palete") {
     const n = Math.max(3, Math.round(w / 60));
     for (let k = 0; k < n; k++) ms.push(mesh(box(Math.min(55, w / n - 8), d, 22), mat.wood, grp, [x - w / 2 + (k + 0.5) * w / n, y, h - 11]));
@@ -282,11 +284,32 @@ function buildObject(o, id, grp) {
   obMeshes[id] = ms;
   label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
 }
+// dimensões da peça no plano (considera giro de 90° em Z)
+function pdim(p) { const s = (p && p.userData.size) || [50, 50, 50], sw = p && Math.abs(Math.sin(p.rotation.z)) > 0.7; return { wx: sw ? s[1] : s[0], wy: sw ? s[0] : s[1], h: s[2] }; }
 function surfaceBelow(x, y, excl) {
-  let z = 0;
+  let z = 0; const e = pdim(excl);
   for (const o of (cur() ? cur().scene.objetos : [])) if (Math.abs(x - o.x) < o.w / 2 && Math.abs(y - o.y) < o.d / 2) z = Math.max(z, o.h);
-  for (const p of parts) if (p !== excl && p !== held) { const q = p.position; if (Math.abs(q.x - x) < 48 && Math.abs(q.y - y) < 48) z = Math.max(z, q.z + 25); }
+  for (const p of parts) if (p !== excl && p !== held && p.parent === root) { const q = p.position, d = pdim(p); if (Math.abs(q.x - x) < (d.wx + e.wx) / 2 - 4 && Math.abs(q.y - y) < (d.wy + e.wy) / 2 - 4) z = Math.max(z, q.z + d.h / 2); }
   return z;
+}
+// pacote de garrafas com filme (tampas desenhadas no topo)
+let packMats = null;
+function packMaterials() {
+  if (packMats) return packMats;
+  const c = document.createElement("canvas"); c.width = 256; c.height = 128; const g = c.getContext("2d");
+  g.fillStyle = "#f2700f"; g.fillRect(0, 0, 256, 128);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { g.beginPath(); g.arc(32 + i * 64, 32 + j * 64, 22, 0, 7); g.fillStyle = "#ffd9b8"; g.fill(); g.beginPath(); g.arc(32 + i * 64, 32 + j * 64, 13, 0, 7); g.fillStyle = "#e8e8e8"; g.fill(); }
+  g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 3; g.strokeRect(2, 2, 252, 124);
+  const top = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), roughness: 0.35 });
+  const c2 = document.createElement("canvas"); c2.width = 128; c2.height = 64; const h = c2.getContext("2d");
+  h.fillStyle = "#e8620a"; h.fillRect(0, 0, 128, 64); h.fillStyle = "#ffffff"; h.fillRect(0, 26, 128, 10); h.fillStyle = "#c94f05"; h.fillRect(0, 0, 128, 4); h.fillRect(0, 60, 128, 4);
+  const side = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c2), roughness: 0.3, metalness: 0.05 });
+  packMats = [side, side, side, side, top, side]; return packMats;
+}
+function makePart(x, y, size, tipo, spawned) {
+  const s = size || [50, 50, 50];
+  const m = mesh(box(s[0], s[1], s[2]), tipo === "pacote" ? packMaterials() : mat.part, root, [x, y, 0]);
+  m.userData.size = s; m.userData.spawned = !!spawned; return m;
 }
 function applyScene(sc) {
   if (held) { held = null; }
@@ -298,7 +321,8 @@ function applyScene(sc) {
   sc.objetos.forEach((o, i) => { const id = "o" + i; buildObject(o, id, cellGroup); obs.push({ id, nome: o.nome, min: [o.x - o.w / 2, o.y - o.d / 2, 0], max: [o.x + o.w / 2, o.y + o.d / 2, o.h] }); });
   RL.setObstacles(obs);
   parts = [];
-  sc.pecas.forEach(([x, y]) => { const m = mesh(box(50, 50, 50), mat.part, root, [x, y, 0]); m.position.z = surfaceBelow(x, y, m) + 25; m.userData.home = m.position.toArray(); parts.push(m); });
+  sc.pecas.forEach(pc => { const [x, y, s, tipo] = Array.isArray(pc) ? pc : [pc.x, pc.y, pc.s, pc.tipo]; const m = makePart(x, y, s, tipo, false); m.position.z = surfaceBelow(x, y, m) + m.userData.size[2] / 2; m.userData.home = m.position.toArray(); parts.push(m); });
+  convAcc = {};
 }
 function partPos(p) { const v = p.getWorldPosition(new THREE.Vector3()); root.worldToLocal(v); return { x: v.x, y: v.y, z: v.z }; }
 // trajetória
@@ -420,7 +444,8 @@ function gripper(close) {
     grip.target = 51;
     if (held) {
       const p = held; root.attach(p); held = null;
-      const z = surfaceBelow(p.position.x, p.position.y, p) + 25, drop = p.position.z - z; p.position.z = z; p.rotation.set(0, 0, 0);
+      const yaw = new THREE.Euler().setFromQuaternion(p.quaternion, "ZYX").z; p.rotation.set(0, 0, Math.round(yaw / (Math.PI / 2)) * (Math.PI / 2));
+      const z = surfaceBelow(p.position.x, p.position.y, p) + pdim(p).h / 2, drop = p.position.z - z; p.position.z = z;
       const on = (cur().scene.objetos.find(o => Math.abs(p.position.x - o.x) < o.w / 2 && Math.abs(p.position.y - o.y) < o.d / 2) || { nome: "o piso" }).nome;
       log(drop > 15 ? "warn" : "ok", drop > 15 ? `Peça solta a ${Math.round(drop)} mm de altura — caiu sobre ${on}.` : `Peça depositada: ${on}.`);
     }
@@ -430,10 +455,41 @@ function flashObstacle(id) { const ms = obMeshes[id]; if (!ms) return; ms.forEac
 function resetCell(silent) {
   if (S.running) return; setJoints(RL.HOME, false);
   if (held) { root.attach(held); held = null; }
-  parts.forEach(p => { p.position.fromArray(p.userData.home); p.rotation.set(0, 0, 0); });
+  parts = parts.filter(p => { if (p.userData.spawned) { p.parent && p.parent.remove(p); return false; } return true; });
+  parts.forEach(p => { if (p.parent !== root) root.attach(p); p.position.fromArray(p.userData.home); p.rotation.set(0, 0, 0); }); convAcc = {};
   gripClosed = false; grip.target = 51; for (let n = 1; n <= 64; n++) if (S.outs[n]) { S.outs[n] = false; if (n <= 8) $("outs").children[n - 1].classList.remove("on"); }
   setTool(RL.DEFAULT_TOOL); S.base = { X: 0, Y: 0, Z: 0, A: 0, B: 0, C: 0 }; clearTrail(); S.errLine = null; render(); setStatus("idle"); $("ikmsg").textContent = ""; fillGo();
   if (!silent) log("info", "Célula reiniciada: robô em HOME, peças nas posições iniciais.");
+}
+
+// ---- esteiras motorizadas: motor = $OUT[n], sensor de batente = $IN[n], geração automática de pacotes ----
+let convLast = performance.now(), convAcc = {};
+const sensorMeshes = {};
+function conveyors(dt) {
+  const p = cur(); if (!p || dt <= 0) return;
+  p.scene.objetos.forEach((o, i) => {
+    if (o.tipo !== "esteira" || !o.motor) return;
+    const xs = o.x - o.w / 2, xe = o.x + o.w / 2, stop = xe - 6;
+    const onBelt = parts.filter(q => q !== held && q.parent === root && Math.abs(q.position.y - o.y) < o.d / 2 && q.position.x > xs - 40 && q.position.x < xe + 40 && Math.abs(q.position.z - (o.h + pdim(q).h / 2)) < 4)
+      .sort((a, b) => b.position.x - a.position.x);
+    if (S.outs[o.motor]) {
+      let limit = stop;
+      for (const q of onBelt) { const hl = pdim(q).wx / 2, tgt = Math.min(q.position.x + (o.vel || 200) * dt, limit - hl); if (tgt > q.position.x) q.position.x = tgt; limit = q.position.x - hl - 3; }
+      const g = o.gerar;
+      if (g) {
+        convAcc[i] = (convAcc[i] || 0) + dt;
+        const free = !onBelt.some(q => q.position.x - pdim(q).wx / 2 < xs + g.tamanho[0] + 12);
+        if (convAcc[i] >= g.intervalo && free && parts.filter(q => q.userData.spawned).length < (g.max || 40)) {
+          convAcc[i] = 0; const m = makePart(xs + g.tamanho[0] / 2 + 4, o.y, g.tamanho, g.tipo, true); m.position.z = o.h + g.tamanho[2] / 2; parts.push(m);
+        }
+      }
+    }
+    if (o.sensor) {
+      const at = onBelt.some(q => q.position.x + pdim(q).wx / 2 > stop - 4);
+      if (!!S.ins[o.sensor] !== at) { S.ins[o.sensor] = at; const b = $("ins").children[o.sensor - 1]; if (b) b.classList.toggle("on", at); }
+      const sm = sensorMeshes["o" + i]; if (sm) sm.material.color.set(at ? 0x30ff60 : 0x444444);
+    }
+  });
 }
 
 // ---- câmera e laço de renderização ----
@@ -464,6 +520,7 @@ function resize() { const w = view.clientWidth, h = view.clientHeight; if (!w ||
 new ResizeObserver(resize).observe(view);
 renderer.setAnimationLoop(() => {
   controls.update();
+  { const nw = performance.now(); conveyors(Math.min(0.1, (nw - convLast) / 1000)); convLast = nw; }
   if (Math.abs(grip.cur - grip.target) > 0.1) { grip.cur += Math.sign(grip.target - grip.cur) * Math.min(Math.abs(grip.target - grip.cur), 3); fA.position.y = grip.cur; fB.position.y = -grip.cur; }
   updatePanel(); renderer.render(scene, camera);
   root.traverse(o => { if (o.isCSS2DObject) o.visible = VIS[o.userData.k] !== false; });

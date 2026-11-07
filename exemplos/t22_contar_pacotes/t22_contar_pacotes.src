@@ -1,0 +1,26 @@
+DEF t22_contar_pacotes()
+  ; Liga a esteira e conta os pacotes: a cada pacote no batente o robo
+  ; retira e descarta no palete (sem arrumar). Para depois de 6 pacotes.
+  ; Observe IN 1 acender e apagar no painel de E/S.
+  DECL INT cont
+  INI
+  $VEL.CP = 0.8
+  cont = 0
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE
+  WHILE cont < 6
+    WAIT FOR $IN[1]
+    PTP PEGA
+    LIN_REL {Z -145}
+    $OUT[1] = TRUE
+    WAIT SEC 0.2
+    LIN_REL {Z 145}
+    PTP DESCARTE
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    cont = cont + 1
+  ENDWHILE
+  $OUT[6] = FALSE
+  PTP HOME
+END

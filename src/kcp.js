@@ -246,6 +246,7 @@ export function initKCP(api) {
     ] },
     3: { t: "Funções manuais peças e esteira", rows: [
       { l: ["Repor peças (posição inicial)", () => { api.resetCell(true); msg("info", "Peças repostas, robô em HOME", "IHM"); }], r: ["Esteira avançar 100 mm", () => conveyorAdvance()] },
+      { l: ["Esteira de entrada desligar", () => { const e = (cur().scene.objetos || []).find(o => o.motor); if (!e) return setH("H040 Não há esteira motorizada", true); api.setOut(e.motor, false); }], r: ["Esteira de entrada ligar", () => { const e = (cur().scene.objetos || []).find(o => o.motor); if (!e) return setH("H040 Não há esteira motorizada", true); api.setOut(e.motor, true); }] },
     ] },
     4: { t: "Funções manuais sinais", rows: [2, 3, 4, 5, 6, 7, 8].map(n => ({ l: [`$OUT[${n}] desligar`, () => api.setOut(n, false)], r: [`$OUT[${n}] ligar`, () => api.setOut(n, true)] })) },
   };
