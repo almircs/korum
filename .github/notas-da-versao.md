@@ -11,7 +11,14 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.5.0 — Trajeto por pontos
+## Novidades da versão 1.6.0 — Arrastar pontos do Trajeto
+- Os pontos do Trajeto agora podem ser **arrastados no 3D**: arrastar move a posição (X Y); **Shift + arrastar** (ou o botão "Altura (Z)") sobe e desce
+- **Grudar na peça / superfície**: o ponto de pegar gruda no centro da peça mais próxima; o de soltar fica apoiado na superfície onde for solto
+- Painel de leitura no canto do 3D: X, Y, Z, **altura acima da superfície**, **distância da base do robô** e se o ponto é alcançável
+- Cada ponto tem uma **haste até a superfície** e uma marca no apoio, para enxergar altura e posição; ponto fora do alcance fica vermelho
+- Ajuste fino pelo teclado: setas = 5 mm (Shift = 20 mm), PgUp/PgDn = altura
+
+## Versão 1.5.0 — Trajeto por pontos
 - Nova aba **Trajeto** (nos modos Iniciante e Profissional): ligue **Marcar pontos** e clique no simulador 3D
   - clique numa **peça** = pegar; clique na **esteira, mesa, palete ou chão** = soltar (ou passar por, se a garra estiver vazia)
   - o programa KRL é escrito sozinho: aproximação por cima (PTP), descida e subida em linha reta (LIN), garra abrindo e fechando

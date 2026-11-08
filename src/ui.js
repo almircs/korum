@@ -113,7 +113,7 @@ function showPane(p) {
   if (p === "ia") renderChat();
   if (p === "config") renderConfig();
   if (p === "inicio") renderTour();
-  if (p === "traj") trRender(); else if (typeof setMarking === "function" && trMarking) setMarking(false);
+  if (p === "traj") { trRender(); trDraw(); } else { if (typeof setMarking === "function" && trMarking) setMarking(false); if (typeof trInfo === "function") trInfo(); }
 }
 document.querySelectorAll("#nav button[data-p]").forEach(b => b.onclick = () => showPane(b.dataset.p));
 
@@ -1087,20 +1087,107 @@ $("trHome").onchange = () => { trOpts().home = $("trHome").checked; if ((cur().t
 $("trRun").onclick = () => { if (S.running) return; if (!(cur().trajeto || []).length) return toast("Marque pelo menos um ponto"); resetCell(true); runProgram(false); };
 $("trCode").onclick = () => { showPane("prog"); setFile("src"); };
 $("trClear").onclick = async () => { const T = cur().trajeto || []; if (!T.length) return; const ok = await ask("Apagar pontos", `Apagar os ${T.length} pontos do trajeto? O programa atual continua no editor e no histórico de versões.`, [{ label: "Cancelar", value: false }, { label: "Apagar", value: true, danger: true }]); if (ok) { cur().trajeto = []; trSel = -1; trRender(); trDraw(); } };
+// pontos alvo de clique (esferas invisíveis maiores) e desenho com haste até a superfície
+let trPick3D = [];
+function surfUnder(x, y, exclIdx) { // superfície abaixo do ponto (objetos e peças soltas)
+  let z = 0, nome = "o chão";
+  for (const o of cur().scene.objetos) if (Math.abs(x - o.x) < o.w / 2 && Math.abs(y - o.y) < o.d / 2 && o.h > z) { z = o.h; nome = o.nome; }
+  for (const q of parts) if (q.parent === root) { const d = pdim(q); if (Math.abs(q.position.x - x) < d.wx / 2 && Math.abs(q.position.y - y) < d.wy / 2 && q.position.z + d.h / 2 > z) { z = q.position.z + d.h / 2; nome = "a peça"; } }
+  return { z, nome };
+}
 function trDraw() {
-  clearGroup(trGroup); const p = cur(); const T = (p && p.trajeto) || []; if (!T.length) return; const o = trOpts();
+  clearGroup(trGroup); trPick3D = []; const p = cur(); const T = (p && p.trajeto) || []; if (!T.length) { trInfo(); return; } const o = trOpts();
   const path = [];
   T.forEach((t, i) => {
-    const c = TRC[t.acao], big = i === trSel;
+    const bad = !!trCheck(t), c = bad ? 0xff4040 : TRC[t.acao], big = i === trSel;
     const m = new THREE.Mesh(new THREE.SphereGeometry(big ? 18 : 13, 20, 14), new THREE.MeshBasicMaterial({ color: c })); m.position.set(t.x, t.y, t.z); trGroup.add(m);
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(34, 10, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(t.x, t.y, t.z); hit.userData.ti = i; trGroup.add(hit); trPick3D.push(hit);
     if (big) { const ring = new THREE.Mesh(new THREE.TorusGeometry(30, 3, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); ring.position.set(t.x, t.y, t.z); trGroup.add(ring); }
+    // haste até a superfície e "sombra" no apoio: ajudam a ver altura e posição
+    const s = surfUnder(t.x, t.y);
+    const g0 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(t.x, t.y, t.z), new THREE.Vector3(t.x, t.y, s.z + 1)]);
+    trGroup.add(new THREE.Line(g0, new THREE.LineBasicMaterial({ color: 0xbfc8d4, transparent: true, opacity: 0.8 })));
+    const sh = new THREE.Mesh(new THREE.RingGeometry(10, 22, 28), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); sh.position.set(t.x, t.y, s.z + 1.5); trGroup.add(sh);
     const up = t.acao === "passar" ? t.z : t.z + (+o.aprox || 150);
     if (t.acao !== "passar") { const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(t.x, t.y, t.z), new THREE.Vector3(t.x, t.y, up)]); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: c, dashSize: 12, gapSize: 8 })); l.computeLineDistances(); trGroup.add(l); }
     path.push(new THREE.Vector3(t.x, t.y, up));
-    label(trGroup, `${i + 1} · ${TRN[t.acao]}`, [t.x, t.y, up + 30], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
+    label(trGroup, `${i + 1} · ${TRN[t.acao]}${big ? ` · ${Math.round(t.z - s.z)} mm acima` : ""}`, [t.x, t.y, up + 30], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
   });
   if (path.length > 1) { const g = new THREE.BufferGeometry().setFromPoints(path); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 20, gapSize: 12, transparent: true, opacity: 0.7 })); l.computeLineDistances(); trGroup.add(l); }
+  trInfo();
 }
+// painel de leitura (X, Y, Z, altura sobre a superfície, distância da base, alcance)
+function trInfo() {
+  const box = $("trInfo"), p = cur(), t = p && p.trajeto && p.trajeto[trSel];
+  if (!t || (S.pane !== "traj" && !trDrag)) { box.style.display = "none"; return; }
+  const s = surfUnder(t.x, t.y), er = trCheck(t), dist = Math.hypot(t.x, t.y);
+  box.style.display = "block";
+  box.innerHTML = `<b>Ponto ${trSel + 1} · ${TRN[t.acao]}</b>${trDrag ? ` <span class="tm">${trDrag.mode === "z" ? "arrastando ALTURA" : "arrastando POSIÇÃO"}</span>` : ""}<br>
+    X <b>${Math.round(t.x)}</b> · Y <b>${Math.round(t.y)}</b> · Z <b>${Math.round(t.z)}</b> mm<br>
+    Altura: <b>${Math.round(t.z - s.z)} mm</b> acima de ${esc(s.nome)}<br>
+    Distância da base do robô: <b>${Math.round(dist)} mm</b><br>
+    <span style="color:${er ? "#ff7070" : "#5fe08f"}">${er ? "⚠ " + esc(er) : "✓ alcançável"}</span>
+    <div class="tk">Arraste o ponto para mover · Shift + arrastar (ou botão Altura) para subir/descer · setas do teclado: ±5 mm · PgUp/PgDn: altura</div>`;
+}
+// ----- arrastar pontos -----
+let trDrag = null, trDragMode = "xy";
+function localRay(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera);
+  root.updateMatrixWorld(); const inv = root.matrixWorld.clone().invert();
+  return ray.ray.clone().applyMatrix4(inv);
+}
+function hitMarker(ev) {
+  if (!trPick3D.length) return null;
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera);
+  const h = ray.intersectObjects(trPick3D, false)[0]; return h ? h.object.userData.ti : null;
+}
+function snapPoint(t) {
+  if (!$("trSnap").checked) return;
+  if (t.acao === "pegar") { // gruda no centro da peça mais próxima
+    let best = null, bd = 60; for (const q of parts) if (q.parent === root) { const d = Math.hypot(q.position.x - t.x, q.position.y - t.y); if (d < bd) { bd = d; best = q; } }
+    if (best) { t.x = r1(best.position.x); t.y = r1(best.position.y); t.z = r1(best.position.z); t.a = Math.round(best.rotation.z * RL.R2D); }
+  } else if (t.acao === "soltar") t.z = r1(surfUnder(t.x, t.y).z + 30); // apoia na superfície (peça 5 mm acima)
+}
+view.addEventListener("pointerdown", e => {
+  if (S.running || e.button !== 0 || e.target !== renderer.domElement) return;
+  const i = hitMarker(e); if (i === null) return;
+  e.stopPropagation(); e.preventDefault(); renderer.domElement.setPointerCapture(e.pointerId);
+  const t = cur().trajeto[i]; trSel = i; trDown = null; controls.enabled = false;
+  if (!cur().trSaved) { saveVersion("Antes de arrastar pontos do Trajeto"); }
+  const mode = e.shiftKey || trDragMode === "z" ? "z" : "xy";
+  let plane;
+  if (mode === "xy") plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -t.z);
+  else { const d = new THREE.Vector3(); camera.getWorldDirection(d); root.updateMatrixWorld(); d.transformDirection(root.matrixWorld.clone().invert()); d.z = 0; if (d.lengthSq() < 1e-6) d.set(1, 0, 0); d.normalize(); plane = new THREE.Plane().setFromNormalAndCoplanarPoint(d, new THREE.Vector3(t.x, t.y, t.z)); }
+  const p0 = localRay(e).intersectPlane(plane, new THREE.Vector3());
+  trDrag = { i, mode, plane, start: p0 ? p0.clone() : null, t0: { ...t }, moved: false };
+  if (S.pane === "traj") trRender(); trDraw();
+}, true);
+window.addEventListener("pointermove", e => {
+  if (!trDrag) { // cursor de "mãozinha" sobre os pontos
+    if (e.target === renderer.domElement && !S.running && trPick3D.length) { const now = performance.now(); if (now - (trDrag && 0 || window.__trHov || 0) > 60) { window.__trHov = now; renderer.domElement.style.cursor = hitMarker(e) !== null ? "grab" : (trMarking ? "crosshair" : ""); } }
+    return;
+  }
+  const pt = localRay(e).intersectPlane(trDrag.plane, new THREE.Vector3()); if (!pt || !trDrag.start) return;
+  const t = cur().trajeto[trDrag.i], d = pt.sub(trDrag.start); trDrag.moved = true;
+  if (trDrag.mode === "xy") { t.x = r1(trDrag.t0.x + d.x); t.y = r1(trDrag.t0.y + d.y); t.z = trDrag.t0.z; snapPoint(t); }
+  else t.z = r1(Math.max(0, trDrag.t0.z + d.z));
+  renderer.domElement.style.cursor = "grabbing"; trDraw();
+});
+window.addEventListener("pointerup", () => {
+  if (!trDrag) return; const dr = trDrag; trDrag = null; controls.enabled = true; renderer.domElement.style.cursor = "";
+  if (dr.moved) { const t = cur().trajeto[dr.i]; trChanged(); log("info", `Ponto T${dr.i + 1} movido para X ${t.x} Y ${t.y} Z ${t.z}.`); } else { trRender(); trDraw(); }
+});
+// teclado: ajuste fino do ponto selecionado
+document.addEventListener("keydown", e => {
+  if (S.pane !== "traj" || S.running || trSel < 0 || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  const t = (cur().trajeto || [])[trSel]; if (!t) return; const st = e.shiftKey ? 20 : 5;
+  const m = { ArrowUp: ["x", st], ArrowDown: ["x", -st], ArrowLeft: ["y", st], ArrowRight: ["y", -st], PageUp: ["z", st], PageDown: ["z", -st] }[e.key];
+  if (!m) return; e.preventDefault(); t[m[0]] = r1(t[m[0]] + m[1]); clearTimeout(window.__trK); trRender(); trDraw(); window.__trK = setTimeout(trChanged, 400);
+});
+$("trModeXY").onclick = () => { trDragMode = "xy"; $("trModeXY").classList.add("on"); $("trModeZ").classList.remove("on"); };
+$("trModeZ").onclick = () => { trDragMode = "z"; $("trModeZ").classList.add("on"); $("trModeXY").classList.remove("on"); };
 
 // ======================= ANÁLISE / ENGENHARIA REVERSA =======================
 function renderRevInfo() {

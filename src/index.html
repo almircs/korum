@@ -282,6 +282,8 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 .trp .xyz{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px} .trp .pr{display:flex;align-items:center;gap:4px} .trp .xyz input{width:100%;min-width:0;font:12px var(--mono);padding:2px 4px} .trp .xyz label{font:10px var(--mono);color:var(--mut);width:30px;text-align:right}
 .trp .bt{display:flex;gap:2px} .trp .bt button{padding:1px 6px;font-size:11px}
 .trp .st{grid-column:2/-1;font-size:11.5px}
+.trinfo{position:absolute;left:10px;top:46px;display:none;background:rgba(15,18,22,.9);color:#dce2ea;border:1px solid #353e4a;border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font:12.5px/1.55 var(--mono);pointer-events:none;max-width:360px}
+.trinfo .tm{color:#ffb066;font-size:11px} .trinfo .tk{color:#8b96a5;font:11px/1.4 var(--sans);margin-top:4px}
 </style>
 </head>
 <body>
@@ -360,6 +362,7 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
       <div class="scroll">
         <p class="note" style="margin-top:0">Ligue <b>Marcar pontos</b> e clique no simulador 3D: clicando numa <b>peça</b> o robô vai pegá-la; clicando na <b>esteira, mesa, palete ou chão</b> ele vai soltar ali. O programa KRL é escrito sozinho a cada ponto.</p>
         <div class="row"><button class="pri" id="trMark">🖱 Marcar pontos: desligado</button></div>
+        <div class="row"><label>Arrastar no 3D</label><div class="nivel"><button id="trModeXY" class="on">Posição (X Y)</button><button id="trModeZ">Altura (Z)</button></div><label style="margin-left:6px"><input type="checkbox" id="trSnap" checked> Grudar na peça / superfície</label></div>
         <div class="row"><label>Próximo ponto</label><select id="trNext"><option value="auto">Automático (peça = pegar, superfície = soltar)</option><option value="pegar">Pegar</option><option value="soltar">Soltar</option><option value="passar">Passar por (desvio)</option></select></div>
         <div id="trList"></div>
         <h3>Opções do programa</h3>
@@ -427,6 +430,7 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
       <button id="tClear">Limpar trajetória</button><button id="tFull" title="Tela cheia do simulador">⛶</button>
     </div>
     <div class="nowcmd" id="nowcmd"></div>
+    <div class="trinfo" id="trInfo"></div>
     <div class="disclaimer">Modelo de 6 eixos com dimensões didáticas aproximadas.<br>Simulação educacional: não substitui controlador real nem valida segurança.</div>
   </section>
   <div class="rz v" data-rz="right"></div>
@@ -488,6 +492,7 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 <h3>Trajeto por pontos (aba Trajeto)</h3>
 <ul><li>Ligue <b>Marcar pontos</b> e clique no 3D: numa peça = <b>Pegar</b>; numa superfície (esteira, mesa, palete, chão) = <b>Soltar</b> (ou <b>Passar por</b> se não houver peça na garra). Clicar em cima de outra peça com "Soltar" empilha.</li>
 <li>Cada ponto vira T1, T2… no .dat (com T1_APROX acima) e o programa KRL é reescrito a cada mudança: aproximação por PTP, descida e subida em LIN, garra com $OUT[1].</li>
+<li><b>Arrastar no 3D:</b> pegue a bolinha do ponto e arraste. Normal = muda a posição (X Y); <b>Shift</b> + arrastar, ou o botão "Altura (Z)", sobe e desce. Com "Grudar" ligado, o ponto de pegar gruda no centro da peça e o de soltar fica apoiado na superfície. Setas do teclado movem 5 mm (Shift = 20 mm); PgUp/PgDn mudam a altura. O painel no canto do 3D mostra X, Y, Z, a altura sobre a superfície, a distância da base e se o ponto é alcançável.</li>
 <li>Na lista: trocar a ação, ajustar X/Y/Z/giro, mudar a ordem (↑ ↓) e excluir (✕). Cada ponto mostra se é alcançável ou se haveria colisão.</li></ul>
 <h3>Esteira motorizada (cenário "Linha de pacotes")</h3>
 <ul><li><code>$OUT[6]</code> liga o motor da esteira de entrada; os pacotes (100 × 50 × 50 mm) entram sozinhos, andam e se acumulam no batente.</li>
