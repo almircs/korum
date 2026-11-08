@@ -165,6 +165,7 @@ section{background:var(--panel);min-width:0;min-height:0;display:flex;flex-direc
 .diff div{padding:0 10px} .diff .a{background:rgba(67,195,122,.16)} .diff .r{background:rgba(255,90,90,.16)} .diff .h{color:var(--dim)}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--acc);padding:8px 14px;border-radius:8px;z-index:60;display:none}
 .rep td{font-size:12.5px} .rep td:first-child{color:var(--mut);font-family:var(--sans);white-space:normal}
+#left{grid-column:2;grid-row:1} .rz[data-rz=left]{grid-column:3;grid-row:1} #view{grid-column:4;grid-row:1} .rz[data-rz=right]{grid-column:5;grid-row:1} #right{grid-column:6;grid-row:1} .rz.h{grid-row:2} #console{grid-row:3}
 body.full main{grid-template-columns:54px 0 0 1fr 0 0;grid-template-rows:1fr 0 0}
 body.full #left,body.full #right,body.full #console,body.full .rz{display:none}
 /* ===== Modo painel ===== */
@@ -362,6 +363,8 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
       <div class="scroll">
         <p class="note" style="margin-top:0">Ligue <b>Marcar pontos</b> e clique no simulador 3D: clicando numa <b>peça</b> o robô vai pegá-la; clicando na <b>esteira, mesa, palete ou chão</b> ele vai soltar ali. O programa KRL é escrito sozinho a cada ponto.</p>
         <div class="row"><button class="pri" id="trMark">🖱 Marcar pontos: desligado</button></div>
+        <div class="row"><button class="sm" id="trTop" title="Câmera de cima, sobre o ponto: melhor para posicionar X e Y">⬇ Ver de cima</button><button class="sm" id="trSide" title="Câmera de lado: melhor para ajustar a altura">➡ Ver de lado</button><button class="sm" id="trFocus" title="Aproxima a câmera do ponto selecionado (tecla F)">🔍 Focar no ponto</button></div>
+        <div class="row"><label>Passo do arraste</label><select id="trStep"><option value="0">livre</option><option value="1">1 mm</option><option value="5" selected>5 mm</option><option value="10">10 mm</option><option value="25">25 mm</option><option value="50">50 mm</option></select><label style="margin-left:6px"><input type="checkbox" id="trGuides" checked> Grade e guias</label></div>
         <div class="row"><label>Arrastar no 3D</label><div class="nivel"><button id="trModeXY" class="on">Posição (X Y)</button><button id="trModeZ">Altura (Z)</button></div><label style="margin-left:6px"><input type="checkbox" id="trSnap" checked> Grudar na peça / superfície</label></div>
         <div class="row"><label>Próximo ponto</label><select id="trNext"><option value="auto">Automático (peça = pegar, superfície = soltar)</option><option value="pegar">Pegar</option><option value="soltar">Soltar</option><option value="passar">Passar por (desvio)</option></select></div>
         <div id="trList"></div>

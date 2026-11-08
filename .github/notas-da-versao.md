@@ -11,7 +11,14 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.6.0 — Arrastar pontos do Trajeto
+## Novidades da versão 1.6.1 — Posicionar pontos com mais precisão
+- **Corrigido:** a tela cheia (⛶) ficava vazia. Agora mostra o simulador; Esc ou ⛶ volta
+- **Pegar o ponto ficou mais fácil:** o ponto é escolhido pela proximidade do cursor na tela e aparece sempre, mesmo atrás de peças e objetos (com um halo branco)
+- **Precisão:** segure **Ctrl** ao arrastar para mover 5× mais devagar; **passo do arraste** (livre, 1, 5, 10, 25 ou 50 mm, padrão 5 mm)
+- **Visão:** grade milimetrada (linhas a cada 50 mm) e guias X/Y no ponto selecionado; botões **Ver de cima**, **Ver de lado** e **Focar no ponto** (tecla F)
+- Os números da lista acompanham o ponto durante o arraste
+
+## Versão 1.6.0 — Arrastar pontos do Trajeto
 - Os pontos do Trajeto agora podem ser **arrastados no 3D**: arrastar move a posição (X Y); **Shift + arrastar** (ou o botão "Altura (Z)") sobe e desce
 - **Grudar na peça / superfície**: o ponto de pegar gruda no centro da peça mais próxima; o de soltar fica apoiado na superfície onde for solto
 - Painel de leitura no canto do 3D: X, Y, Z, **altura acima da superfície**, **distância da base do robô** e se o ponto é alcançável
