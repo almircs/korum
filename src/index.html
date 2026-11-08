@@ -514,6 +514,12 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 <li><b>Cafeteira / máquina de sorvete</b>: <code>$OUT[3] = TRUE</code> inicia o preparo se houver copo sob o bico (na bandeja ou segurado pelo robô); o copo enche aos poucos; <code>$IN[3]</code> = copo cheio. Sem copo sob o bico, o produto derrama.</li>
 <li><b>Balcão de entrega</b>: um cliente chega e faz o pedido (<code>$IN[1]</code>); ao receber o copo cheio, ele leva e outro cliente chega. <code>$IN[4]</code> = balcão ocupado; copo vazio entregue gera reclamação.</li>
 <li>Os copos são pegos pelo lado, com a garra na horizontal (<code>B 0</code>) e pouca força.</li></ul>
+<h3>Paletizador e despaletizador de caixas (exemplos T25 e T26)</h3>
+<ul><li>Caixas plásticas de refrigerante em escala 1:4 (102 × 78 × 90 mm, 1,5 kg). A garra pega uma <b>fila</b> inteira: 4 caixas atravessadas (6 kg) ou 3 no comprimento (4,5 kg) — use <code>$GARRA_FORCA</code> de pelo menos 148 N.</li>
+<li>Palete com camadas amarradas de 10 caixas: camadas ímpares = fila de 4 + 3 + 3; pares = 3 + 3 + 4.</li>
+<li><b>Paletizador</b>: <code>$OUT[6]</code> liga a esteira de roletes; <code>$OUT[7]</code> pede ao formador a fila de 4 (TRUE) ou de 3 (FALSE); <code>$IN[1]</code> = fila formada no batente com a quantidade pedida.</li>
+<li><b>Despaletizador</b>: <code>$OUT[6]</code> liga a esteira de saída; <code>$IN[1]</code> = posição de carga ocupada (espere desligar antes de soltar a próxima fila).</li>
+<li><b>Estações de palete</b> com empilhadeira: <code>$IN[3]</code>/<code>$IN[4]</code> = palete direito/esquerdo pronto (luz verde). Um pulso em <code>$OUT[3]</code>/<code>$OUT[4]</code> troca o palete (luz amarela piscando por 3 s).</li></ul>
 <h3>Trajeto por pontos (aba Trajeto)</h3>
 <ul><li>Ligue <b>Marcar pontos</b> e clique no 3D: numa peça = <b>Pegar</b>; numa superfície (esteira, mesa, palete, chão) = <b>Soltar</b> (ou <b>Passar por</b> se não houver peça na garra). Clicar em cima de outra peça com "Soltar" empilha.</li>
 <li>Cada ponto vira T1, T2… no .dat (com T1_APROX acima) e o programa KRL é reescrito a cada mudança: aproximação por PTP, descida e subida em LIN, garra com $OUT[1].</li>

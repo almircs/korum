@@ -1,0 +1,28 @@
+DEFDAT t26_despaletizador
+  ; caixas em escala 1:4 (reais: 408 x 310 x 361 mm, modelo Litrao)
+  DECL REAL COMP = 102           ; comprimento da caixa (nComprimCaixa)
+  DECL REAL LARG = 78            ; largura da caixa (nLarguraCaixa)
+  DECL REAL ALTURA = 90          ; altura da caixa (nAlturaCaixa)
+  DECL INT CAMADAS = 4           ; camadas por palete (nNumeroCamadas)
+  ; variaveis de controle (como as PERS do programa ABB)
+  DECL INT lado = 1              ; 1 = palete direito, 2 = esquerdo (stPosicaoCarga)
+  DECL INT camada = 1            ; nCamada
+  DECL INT linha = 1             ; nLinha
+  DECL INT nivel = 1
+  DECL INT caixas = 0
+  DECL INT pecas = 0             ; nNumeroPecas
+  DECL INT k = 0
+  DECL BOOL fila4 = FALSE        ; TRUE = fila de 4 caixas atravessadas
+  DECL REAL desl_y = 0           ; nDeslocamentoY
+  DECL REAL desl_z = 0           ; nDeslocamentoZ
+  DECL REAL larg_fila = 0
+  ; REF_DIR / REF_ESQ: borda da 1a fila, altura do centro da caixa na 1a camada
+  DECL E6POS REF_DIR = {X 300, Y -649, Z 165, A 0, B 90, C 0}
+  DECL E6POS REF_ESQ = {X 300, Y 391, Z 165, A 0, B 90, C 0}
+  DECL E6POS REF = {X 300, Y -649, Z 165, A 0, B 90, C 0}
+  DECL E6POS ALVO = {X 300, Y -598, Z 165, A 0, B 90, C 0}
+  DECL E6POS ALVO_APROX = {X 300, Y -598, Z 365, A 0, B 90, C 0}
+  ; deposito na esteira de saida (posicao de carga)
+  DECL E6POS DEPOSITA = {X 566, Y 0, Z 195, A 0, B 90, C 0}
+  DECL E6POS DEP_APROX = {X 566, Y 0, Z 420, A 0, B 90, C 0}
+ENDDAT

@@ -270,16 +270,34 @@ function buildObject(o, id, grp) { const idx = +id.slice(1);
     ms.push(mesh(box(w, d, 20), mat.top, grp, [x, y, h - 10]));
     for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) ms.push(mesh(box(24, 24, h - 20), mat.table, grp, [x + dx * (w / 2 - 20), y + dy * (d / 2 - 20), (h - 20) / 2]));
   } else if (o.tipo === "esteira") {
-    ms.push(mesh(box(w, Math.max(10, d - 40), h - 30), mat.table, grp, [x, y, (h - 30) / 2]));
-    ms.push(mesh(box(w, Math.max(10, d - 70), 20), mat.belt, grp, [x, y, h - 10]));
-    mesh(box(w, 18, 34), mat.yellow, grp, [x, y - d / 2 + 9, h - 17]); mesh(box(w, 18, 34), mat.yellow, grp, [x, y + d / 2 - 9, h - 17]);
-    for (let sx = x - w / 2 + 30; sx < x + w / 2; sx += 70) mesh(box(6, Math.max(10, d - 70), 1), mat.stripe, grp, [sx, y, h + 0.6]);
-    if (o.sensor) { mesh(box(6, d - 20, 36), mat.yellow, grp, [x + w / 2 - 3, y, h + 18]); sensorMeshes[id] = mesh(box(14, 14, 14), new THREE.MeshBasicMaterial({ color: 0x444444 }), grp, [x + w / 2 - 30, y + d / 2 - 2, h + 40]); }
-    if (o.motor) mesh(cylY(28, 50), mat.dark, grp, [x - w / 2 + 40, y + d / 2 + 25, h - 40]);
+    const dir = o.dir === -1 ? -1 : 1, head = dir > 0 ? x + w / 2 : x - w / 2, tail = dir > 0 ? x - w / 2 : x + w / 2;
+    if (o.rolos) { // transportador de roletes (como nas linhas de garrafas)
+      const blue = new THREE.MeshStandardMaterial({ color: 0x1f5fb8, roughness: 0.45, metalness: 0.3 });
+      ms.push(mesh(box(w, d - 40, 20), blue, grp, [x, y, h - 40]));
+      for (const sy of [-1, 1]) mesh(box(w, 14, 46), blue, grp, [x, y + sy * (d / 2 - 7), h - 15]);
+      for (let sx = x - w / 2 + 40; sx < x + w / 2 - 20; sx += 260) for (const sy of [-1, 1]) mesh(box(30, 30, h - 40), mat.table, grp, [sx, y + sy * (d / 2 - 22), (h - 40) / 2]);
+      for (let sx = x - w / 2 + 15; sx < x + w / 2; sx += 32) mesh(cylY(9, d - 28, 12), mat.steel, grp, [sx, y, h - 9]);
+    } else {
+      ms.push(mesh(box(w, Math.max(10, d - 40), h - 30), mat.table, grp, [x, y, (h - 30) / 2]));
+      ms.push(mesh(box(w, Math.max(10, d - 70), 20), mat.belt, grp, [x, y, h - 10]));
+      mesh(box(w, 18, 34), mat.yellow, grp, [x, y - d / 2 + 9, h - 17]); mesh(box(w, 18, 34), mat.yellow, grp, [x, y + d / 2 - 9, h - 17]);
+      for (let sx = x - w / 2 + 30; sx < x + w / 2; sx += 70) mesh(box(6, Math.max(10, d - 70), 1), mat.stripe, grp, [sx, y, h + 0.6]);
+    }
+    if (o.sensor && !o.saida) { mesh(box(6, d - 20, 36), mat.yellow, grp, [head - dir * 3, y, h + 18]); sensorMeshes[id] = mesh(box(14, 14, 14), new THREE.MeshBasicMaterial({ color: 0x444444 }), grp, [head - dir * 30, y + d / 2 - 2, h + 40]); }
+    if (o.sensor && o.saida) { const zx = tail + dir * (o.zona || 340); mesh(box(10, 10, 90), mat.yellow, grp, [zx, y + d / 2 + 4, h + 45]); sensorMeshes[id] = mesh(box(14, 14, 14), new THREE.MeshBasicMaterial({ color: 0x444444 }), grp, [zx, y + d / 2 + 4, h + 97]); }
+    if (o.motor) mesh(cylY(28, 50), mat.dark, grp, [tail + dir * 40, y + d / 2 + 25, h - 40]);
+    if (o.formador || o.saida) devLabels[idx] = label(grp, o.nome, [x, y - d / 2 - 40, h + 15], "lbl ob", null, "objeto");
   } else if (o.tipo === "palete") {
     const n = Math.max(3, Math.round(w / 60));
     for (let k = 0; k < n; k++) ms.push(mesh(box(Math.min(55, w / n - 8), d, 22), mat.wood, grp, [x - w / 2 + (k + 0.5) * w / n, y, h - 11]));
     for (const dx of [-1, 0, 1]) for (const dy of [-1, 0, 1]) ms.push(mesh(box(70, 70, h - 22), mat.wood, grp, [x + dx * (w / 2 - 35), y + dy * (d / 2 - 35), (h - 22) / 2]));
+    if (o.estacao) { // estação de palete: coluna luminosa e rótulo com contagem
+      const sy = Math.sign(y) || 1, lx = x + w / 2 + 60, ly = y + sy * (d / 2 + 20);
+      mesh(cylZ(12, 700, 12), mat.dark, grp, [lx, ly, 350]);
+      const lamp = mesh(cylZ(26, 70, 20), new THREE.MeshStandardMaterial({ color: 0x223322, emissive: 0x000000 }), grp, [lx, ly, 735]);
+      mesh(cylZ(28, 12, 20), mat.dark, grp, [lx, ly, 776]);
+      devStreams[idx] = lamp; devLabels[idx] = label(grp, o.nome, [x, y + sy * (d / 2 + 60), h + 520], "lbl ob", null, "objeto");
+    }
   } else if (o.tipo === "maquina") {
     ms.push(mesh(box(w, d, h), mat.machine, grp, [x, y, h / 2]));
     mesh(box(w * 0.6, 6, h * 0.45), mat.glass, grp, [x, y - d / 2 - 3, h * 0.55]);
@@ -314,7 +332,7 @@ function buildObject(o, id, grp) { const idx = +id.slice(1);
     ms.push(mesh(box(w, d, h), mat.steel, grp, [x, y, h / 2]));
   }
   obMeshes[id] = ms;
-  if (!["dispensador", "cafeteira", "balcao"].includes(o.tipo)) label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
+  if (!["dispensador", "cafeteira", "balcao"].includes(o.tipo) && !o.estacao && !o.formador && !o.saida) label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
 }
 // dimensões da peça no plano (considera giro de 90° em Z)
 function pdim(p) { const s = (p && p.userData.size) || [50, 50, 50], sw = p && Math.abs(Math.sin(p.rotation.z)) > 0.7; return { wx: sw ? s[1] : s[0], wy: sw ? s[0] : s[1], h: s[2] }; }
@@ -338,8 +356,31 @@ function packMaterials() {
   const side = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c2), roughness: 0.3, metalness: 0.05 });
   packMats = [side, side, side, side, top, side]; return packMats;
 }
+// caixas plásticas de refrigerante (garrafas retornáveis) — escala 1:4 das caixas reais 408 × 310 mm
+const CX = { comp: 102, larg: 78, alt: 90, kg: 1.5 };
+let crateMats = null;
+function crateMaterials() {
+  if (crateMats) return crateMats;
+  const c = document.createElement("canvas"); c.width = 204; c.height = 156; const g = c.getContext("2d");
+  g.fillStyle = "#c8141c"; g.fillRect(0, 0, 204, 156); g.fillStyle = "#7d0b10"; g.fillRect(8, 8, 188, 140);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { const px = 30 + i * 48, py = 30 + j * 48; g.beginPath(); g.arc(px, py, 19, 0, 7); g.fillStyle = "#3a1d08"; g.fill(); g.beginPath(); g.arc(px, py, 11, 0, 7); g.fillStyle = "#e9c24a"; g.fill(); g.beginPath(); g.arc(px - 3, py - 3, 4, 0, 7); g.fillStyle = "#fff2b0"; g.fill(); }
+  const top = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c), roughness: 0.5 });
+  const c2 = document.createElement("canvas"); c2.width = 128; c2.height = 112; const h = c2.getContext("2d");
+  h.fillStyle = "#d11a22"; h.fillRect(0, 0, 128, 112); h.fillStyle = "#a50f16"; for (let k = 0; k < 4; k++) h.fillRect(6 + k * 31, 40, 22, 62);
+  h.fillStyle = "#2b0a06"; h.fillRect(40, 10, 48, 16); h.fillStyle = "#ffffff"; h.fillRect(0, 30, 128, 4);
+  const side = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c2), roughness: 0.45 });
+  crateMats = [side, side, side, side, top, side]; return crateMats;
+}
+const hidden = new THREE.MeshBasicMaterial({ visible: false });
+function makeRow(x, y, n) { // fila de caixas: 4 atravessadas (102 mm no sentido transversal) ou 3 no comprimento
+  const quatro = n === 4, cw = quatro ? CX.larg : CX.comp, cd = quatro ? CX.comp : CX.larg, s = [n * cw, cd, CX.alt];
+  const m = mesh(box(...s), hidden, root, [x, y, 0]); m.castShadow = m.receiveShadow = false;
+  for (let k = 0; k < n; k++) mesh(box(cw - 3, cd - 2, CX.alt - 1), crateMaterials(), m, [-s[0] / 2 + cw * (k + 0.5), 0, -0.5]);
+  m.userData.size = s; m.userData.tipo = "fila"; m.userData.n = n; return m;
+}
 function makePart(x, y, size, tipo, spawned, produto) {
   const s = size || [50, 50, 50];
+  if (tipo === "fila") { const m = makeRow(x, y, size && size[0] === 4 ? 4 : 3); m.userData.spawned = !!spawned; return m; }
   if (tipo === "copo") { // copo descartável com o conteúdo (café ou sorvete) que sobe ao encher
     const g = new THREE.CylinderGeometry(s[0] / 2, s[0] / 2 - 6, s[2], 28, 1, true).rotateX(Math.PI / 2);
     const m = mesh(g, new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.5, side: THREE.DoubleSide }), root, [x, y, 0]);
@@ -482,7 +523,7 @@ function setOut(n, v) { S.outs[n] = v; if (n <= 8) $("outs").children[n - 1].cla
 const GR = { fechamento: 0, forca: 60 };
 const ABERTURA = 120; // a garra sempre abre totalmente
 const MU = 0.4, SEG = 2; // atrito dedo/peça e fator de segurança
-const massOf = p => p.userData.tipo === "copo" ? 0.03 + 0.25 * (p.userData.fill || 0) : p.userData.size && p.userData.size[0] === 100 ? 1.2 : 0.5; // copo 30 g + conteúdo · pacote 1,2 kg · peça 0,5 kg
+const massOf = p => p.userData.tipo === "fila" ? p.userData.n * CX.kg : p.userData.tipo === "copo" ? 0.03 + 0.25 * (p.userData.fill || 0) : p.userData.size && p.userData.size[0] === 100 ? 1.2 : 0.5; // copo 30 g + conteúdo · pacote 1,2 kg · peça 0,5 kg
 const forceNeeded = p => Math.ceil(massOf(p) * 9.81 * SEG / (2 * MU));
 const openY = () => ABERTURA / 2 + 6;
 const closedY = w => Math.max(6, w) / 2 + 6;
@@ -524,6 +565,7 @@ function gripper(close) {
         tool.attach(best); held = best; grip.target = w / 2 + 6; S.events.push({ t: "grip", ok: true });
         log("ok", `Garra fechada: peça presa (${GR.forca} N, mínimo ${need} N).`);
         if (best.userData.tipo === "copo" && GR.forca > 50) log("warn", `Força de ${GR.forca} N pode amassar o copo plástico (recomendado até 50 N).`);
+        if (best.userData.tipo === "fila") log("info", `Fila de ${best.userData.n} caixas presa (${massOf(best).toFixed(1).replace(".", ",")} kg).`);
         if (best.userData.size && best.userData.size[0] === 100 && GR.forca > 120) log("warn", `Força de ${GR.forca} N pode amassar o pacote (recomendado até 120 N).`);
       }
     } else { grip.target = closedY(GR.fechamento); S.events.push({ t: "grip", ok: false }); log("info", best ? `Garra fechada vazia (peça mais próxima a ${Math.round(bd)} mm do TCP).` : "Garra fechada vazia."); }
@@ -564,27 +606,78 @@ function conveyors(dt) {
   const p = cur(); if (!p || dt <= 0) return;
   p.scene.objetos.forEach((o, i) => {
     if (o.tipo !== "esteira" || !o.motor) return;
-    const xs = o.x - o.w / 2, xe = o.x + o.w / 2, stop = xe - 6;
+    const st = devState[i] = devState[i] || {};
+    const dir = o.dir === -1 ? -1 : 1, U = q => dir * q.position.x, xs = o.x - o.w / 2, xe = o.x + o.w / 2;
+    const uHead = dir > 0 ? xe : -xs, uTail = dir > 0 ? xs : -xe, stop = uHead - 6;
     const onBelt = parts.filter(q => q !== held && q.parent === root && Math.abs(q.position.y - o.y) < o.d / 2 && q.position.x > xs - 40 && q.position.x < xe + 40 && Math.abs(q.position.z - (o.h + pdim(q).h / 2)) < 4)
-      .sort((a, b) => b.position.x - a.position.x);
+      .sort((a, b) => U(b) - U(a));
+    const want = () => S.outs[o.formador] ? 4 : 3;
     if (S.outs[o.motor]) {
-      let limit = stop;
-      for (const q of onBelt) { const hl = pdim(q).wx / 2, tgt = Math.min(q.position.x + (o.vel || 200) * dt, limit - hl); if (tgt > q.position.x) q.position.x = tgt; limit = q.position.x - hl - 3; }
+      let limit = o.saida ? Infinity : stop;
+      for (const q of onBelt) { const hl = pdim(q).wx / 2, tgt = Math.min(U(q) + (o.vel || 200) * dt, limit - hl); if (tgt > U(q)) q.position.x = dir * tgt; limit = U(q) - hl - 3; }
+      if (o.saida) for (const q of onBelt) if (U(q) - pdim(q).wx / 2 > uHead) { // saiu pelo fim da esteira
+        parts = parts.filter(r => r !== q); q.parent && q.parent.remove(q); st.saiu = (st.saiu || 0) + (q.userData.n || 1);
+      }
       const g = o.gerar;
       if (g) {
         convAcc[i] = (convAcc[i] || 0) + dt;
-        const free = !onBelt.some(q => q.position.x - pdim(q).wx / 2 < xs + g.tamanho[0] + 12);
+        const len = g.tipo === "fila" ? 4 * CX.larg : g.tamanho[0];
+        const free = !onBelt.some(q => U(q) - pdim(q).wx / 2 < uTail + len + 12);
         if (convAcc[i] >= g.intervalo && free && parts.filter(q => q.userData.spawned).length < (g.max || 40)) {
-          convAcc[i] = 0; const m = makePart(xs + g.tamanho[0] / 2 + 4, o.y, g.tamanho, g.tipo, true); m.position.z = o.h + g.tamanho[2] / 2; parts.push(m);
+          convAcc[i] = 0;
+          const m = g.tipo === "fila" ? makeRow(0, o.y, want()) : makePart(0, o.y, g.tamanho, g.tipo, true);
+          m.userData.spawned = true; m.position.x = dir * (uTail + m.userData.size[0] / 2 + 4); m.position.z = o.h + m.userData.size[2] / 2; parts.push(m);
+          if (g.tipo === "fila") st.formadas = (st.formadas || 0) + 1;
         }
       }
     }
     if (o.sensor) {
-      const at = onBelt.some(q => q.position.x + pdim(q).wx / 2 > stop - 4);
-      if (!!S.ins[o.sensor] !== at) { S.ins[o.sensor] = at; const b = $("ins").children[o.sensor - 1]; if (b) b.classList.toggle("on", at); }
+      let at;
+      if (o.saida) at = parts.some(q => q.parent === root && Math.abs(q.position.y - o.y) < o.d / 2 && q.position.x > xs - 40 && q.position.x < xe + 40 && U(q) - pdim(q).wx / 2 < uTail + (o.zona || 340) && q.position.z < o.h + 400);
+      else {
+        const first = onBelt.find(q => U(q) + pdim(q).wx / 2 > stop - 4);
+        at = !!first;
+        if (first && o.formador && first.userData.tipo === "fila" && first.userData.n !== want()) { // formador refaz a fila com a quantidade pedida
+          at = false; st.refaz = (st.refaz || 0) + dt;
+          if (st.refaz > 0.8) { st.refaz = 0; const n = want(); onBelt.filter(q => q.userData.tipo === "fila" && q.userData.n !== n).forEach(q => { const m = makeRow(0, o.y, n); m.userData.spawned = true; m.position.set(q === first ? dir * (uHead - 6 - m.userData.size[0] / 2) : q.position.x, o.y, q.position.z); parts = parts.map(r => r === q ? m : r); q.parent.remove(q); }); log("info", `${o.nome}: formador refez a fila com ${n} caixas ($OUT[${o.formador}] = ${n === 4 ? "TRUE" : "FALSE"}).`); }
+        } else st.refaz = 0;
+      }
+      setIn(o.sensor, at);
       const sm = sensorMeshes["o" + i]; if (sm) sm.material.color.set(at ? 0x30ff60 : 0x444444);
     }
+    if (st.label) st.label.element.textContent = o.saida ? `${o.nome} · caixas expedidas: ${st.saiu || 0}` : `${o.nome} · fila pedida: ${want()} caixas`;
   });
+}
+
+// ---- estação de palete com empilhadeira: $IN[pronto] e troca pedida por $OUT[troca] ----
+function rowsOnPallet(o) { return parts.filter(q => q !== held && q.parent === root && q.userData.tipo === "fila" && Math.abs(q.position.x - o.x) < o.w / 2 && Math.abs(q.position.y - o.y) < o.d / 2); }
+function fillPallet(o) { // palete cheio para despaletizar, na mesma amarração do programa
+  const edge = o.y - (2 * CX.larg + CX.comp) / 2;
+  for (let nv = 1; nv <= (o.camadas || 4); nv++) {
+    const impar = nv % 2 === 1, des = impar ? [0, CX.comp, CX.comp + CX.larg] : [0, CX.larg, 2 * CX.larg], q4 = impar ? [true, false, false] : [false, false, true];
+    for (let k = 0; k < 3; k++) { const m = makeRow(o.x, edge + des[k] + (q4[k] ? CX.comp : CX.larg) / 2, q4[k] ? 4 : 3); m.userData.spawned = true; m.position.z = o.h + CX.alt * (nv - 0.5); parts.push(m); }
+  }
+}
+function palletStation(o, i, st, dt) {
+  const ms = obMeshes["o" + i] || [], sy = Math.sign(o.y) || 1;
+  if (!st.init) { st.init = true; st.ok = true; ms.forEach(m => { if (m.userData.p0 === undefined) m.userData.p0 = m.position.y; m.position.y = m.userData.p0; }); if (o.estacao === "cheio") fillPallet(o); }
+  const on = !!S.outs[o.troca];
+  if (on && !st.prevT && st.ok) {
+    const rows = rowsOnPallet(o), n = rows.reduce((a, q) => a + q.userData.n, 0);
+    st.ok = false; st.fase = 0; st.t = 0; st.carga = rows;
+    log(o.estacao === "cheio" && n ? "warn" : "info", o.estacao === "cheio" ? (n ? `🚜 ${o.nome}: a empilhadeira retirou o palete com ${n} caixas ainda!` : `🚜 ${o.nome}: palete vazio retirado; trazendo um palete cheio…`) : `🚜 ${o.nome}: palete com ${n} caixas retirado; trazendo um palete vazio…`);
+    if (o.estacao === "cheio") st.total = 0; else st.total = (st.total || 0) + n;
+  }
+  st.prevT = on;
+  if (!st.ok) { // animação: palete sai (1,5 s), volta com o novo (1,5 s)
+    st.t += dt; const k = st.fase === 0 ? Math.min(1, st.t / 1.5) : 1 - Math.min(1, st.t / 1.5), off = sy * 900 * k * k;
+    ms.forEach(m => m.position.y = m.userData.p0 + off);
+    if (st.fase === 0) { st.carga.forEach(q => { if (q.userData.y0 === undefined) q.userData.y0 = q.position.y; q.position.y = q.userData.y0 + off; }); if (st.t >= 1.5) { st.carga.forEach(q => { parts = parts.filter(r => r !== q); q.parent && q.parent.remove(q); }); st.fase = 1; st.t = 0; } }
+    else if (st.t >= 1.5) { ms.forEach(m => m.position.y = m.userData.p0); if (o.estacao === "cheio") fillPallet(o); st.ok = true; log("ok", `🚜 ${o.nome}: palete ${o.estacao === "cheio" ? "cheio" : "vazio"} posicionado — $IN[${o.pronto}] = TRUE.`); }
+  }
+  setIn(o.pronto, !!st.ok);
+  if (st.stream) { const blink = !st.ok && (performance.now() / 300 | 0) % 2; st.stream.material.color.set(st.ok ? 0x2fdc5a : blink ? 0xffb020 : 0x553300); st.stream.material.emissive.set(st.ok ? 0x0f7a22 : blink ? 0x995500 : 0); }
+  if (st.label) { const rows = st.ok ? rowsOnPallet(o) : [], n = rows.reduce((a, q) => a + q.userData.n, 0); st.label.element.textContent = `${o.nome} · ${st.ok ? n + " caixas" : "🚜 trocando…"}${o.estacao === "vazio" && st.total ? ` · paletizadas: ${st.total}` : ""}`; }
 }
 
 // ---- dispositivos da célula de café/sorvete: dispensador de copos, cafeteira/máquina de sorvete, balcão com cliente ----
@@ -601,6 +694,7 @@ function devices(dt) {
   const p = cur(); if (!p || dt <= 0) return;
   p.scene.objetos.forEach((o, i) => {
     const st = devState[i] = devState[i] || {};
+    if (o.tipo === "palete" && o.estacao) palletStation(o, i, st, dt);
     if (o.tipo === "dispensador") {
       const [sx, sy] = o.saida; const there = cupsFree().find(q => q.parent === root && Math.hypot(q.position.x - sx, q.position.y - sy) < 25);
       if (st.estoque === undefined) st.estoque = o.estoque || 20;

@@ -11,6 +11,13 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
+## Novidades da versão 1.10.0 — Paletizador e despaletizador de caixas de refrigerante
+- Novos cenários **Paletizador de caixas** e **Despaletizador de caixas**, em escala de laboratório, como numa linha de bebidas:
+  - **esteira de roletes** com formador de filas (fila de 4 ou de 3 caixas, pedida por `$OUT[7]`) ou esteira de saída que leva as caixas embora
+  - **dois paletes** (direito e esquerdo) com coluna luminosa e **empilhadeira** que troca o palete cheio/vazio com um pulso em `$OUT[3]`/`$OUT[4]`
+  - **caixas de garrafas** pegas em fila inteira; a força da garra precisa aguentar o peso (até 6 kg)
+- **T25 · Paletizador** e **T26 · Despaletizador** — programas KRL convertidos da lógica de programas ABB reais (rotinas rCalculoPosicao, rPegaFila, rDepositaFila, rTrocaPalete), com a mesma amarração de camadas e troca automática de lado
+
 ## Novidades da versão 1.9.0 — Robô barista e sorvete expresso
 - Novos cenários **Robô barista (café)** e **Sorvete expresso**, com equipamentos que funcionam:
   - **dispensador de copos** (repõe sozinho, 20 copos, sensor `$IN[2]`)

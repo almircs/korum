@@ -40,3 +40,5 @@ Os programas T19 e T20 têm erros de propósito, para treinar diagnóstico. T07 
 | T22 · Esteira: contar pacotes com o sensor | `t22_contar_pacotes` | Linha de pacotes (esteira + palete) |
 | T23 · Robô barista: servir café | `t23_cafe` | Robô barista (café) |
 | T24 · Sorvete expresso: segurar o copo sob o bico | `t24_sorvete` | Sorvete expresso (como no vídeo) |
+| T25 · Paletizador de caixas de refrigerante | `t25_paletizador` | Paletizador de caixas (refrigerante) |
+| T26 · Despaletizador de caixas de refrigerante | `t26_despaletizador` | Despaletizador de caixas (refrigerante) |

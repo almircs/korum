@@ -1344,3 +1344,256 @@ ${CP("ENT_APROX", 260, 450, 348, 60)}
 ${CP("ENTREGA", 325, 563, 348, 60)}
 ENDDAT` },
 );
+
+// ================== Paletizador e despaletizador de caixas de refrigerante (v1.10) ==================
+// Baseado nos programas PALL.PRG e DEPALL.PRG (ABB RAPID) de uma linha real, em escala 1:4.
+const CELL_CAIXAS = (modo) => ({ cam: { pos: [2.25, 1.8, 1.45], alvo: [0.38, 0.28, 0] },
+  nome: modo === "pal" ? "Paletizador de caixas (refrigerante)" : "Despaletizador de caixas (refrigerante)", objetos: [
+  modo === "pal"
+    ? { tipo: "esteira", nome: "Esteira de entrada (roletes)", x: 800, y: 0, w: 800, d: 160, h: 150, dir: -1, rolos: true, motor: 6, sensor: 1, vel: 260, formador: 7, gerar: { intervalo: 0.8, tipo: "fila", tamanho: [312, 102, 90], max: 90 } }
+    : { tipo: "esteira", nome: "Esteira de saída (roletes)", x: 800, y: 0, w: 800, d: 160, h: 150, rolos: true, motor: 6, sensor: 1, vel: 260, saida: true, zona: 360 },
+  { tipo: "palete", nome: "Palete direito", x: 300, y: -520, w: 330, d: 280, h: 120, estacao: modo === "pal" ? "vazio" : "cheio", camadas: 4, pronto: 3, troca: 3 },
+  { tipo: "palete", nome: "Palete esquerdo", x: 300, y: 520, w: 330, d: 280, h: 120, estacao: modo === "pal" ? "vazio" : "cheio", camadas: 4, pronto: 4, troca: 4 }], pecas: [] });
+SCENES.paletizador = CELL_CAIXAS("pal");
+SCENES.despaletizador = CELL_CAIXAS("depal");
+const CXP = (n, x, y, z) => `  DECL E6POS ${n} = {X ${x}, Y ${y}, Z ${z}, A 0, B 90, C 0}`;
+const CX_DAT = `  ; caixas em escala 1:4 (reais: 408 x 310 x 361 mm, modelo Litrao)
+  DECL REAL COMP = 102           ; comprimento da caixa (nComprimCaixa)
+  DECL REAL LARG = 78            ; largura da caixa (nLarguraCaixa)
+  DECL REAL ALTURA = 90          ; altura da caixa (nAlturaCaixa)
+  DECL INT CAMADAS = 4           ; camadas por palete (nNumeroCamadas)
+  ; variaveis de controle (como as PERS do programa ABB)
+  DECL INT lado = 1              ; 1 = palete direito, 2 = esquerdo (stPosicaoCarga)
+  DECL INT camada = 1            ; nCamada
+  DECL INT linha = 1             ; nLinha
+  DECL INT nivel = 1
+  DECL INT caixas = 0
+  DECL INT pecas = 0             ; nNumeroPecas
+  DECL INT k = 0
+  DECL BOOL fila4 = FALSE        ; TRUE = fila de 4 caixas atravessadas
+  DECL REAL desl_y = 0           ; nDeslocamentoY
+  DECL REAL desl_z = 0           ; nDeslocamentoZ
+  DECL REAL larg_fila = 0
+  ; REF_DIR / REF_ESQ: borda da 1a fila, altura do centro da caixa na 1a camada
+${CXP("REF_DIR", 300, -649, 165)}
+${CXP("REF_ESQ", 300, 391, 165)}
+${CXP("REF", 300, -649, 165)}
+${CXP("ALVO", 300, -598, 165)}
+${CXP("ALVO_APROX", 300, -598, 365)}`;
+const CX_CALC = (desc) => `
+DEF rCalculoPosicao()
+  ; mesma amarracao do programa ABB (TEST nCamada / TEST nLinha):
+  ;   camadas impares: fila de 4 + fila de 3 + fila de 3
+  ;   camadas pares:   fila de 3 + fila de 3 + fila de 4  (uma trava a outra)
+${desc}  desl_z = ALTURA * (nivel - 1)
+  SWITCH nivel
+  CASE 1, 3, 5
+    SWITCH linha
+    CASE 1
+      desl_y = 0
+      fila4 = TRUE
+    CASE 2
+      desl_y = COMP
+      fila4 = FALSE
+    CASE 3
+      desl_y = COMP + LARG
+      fila4 = FALSE
+    ENDSWITCH
+  DEFAULT
+    SWITCH linha
+    CASE 1
+      desl_y = 0
+      fila4 = FALSE
+    CASE 2
+      desl_y = LARG
+      fila4 = FALSE
+    CASE 3
+      desl_y = 2 * LARG
+      fila4 = TRUE
+    ENDSWITCH
+  ENDSWITCH
+  IF fila4 THEN
+    caixas = 4
+    larg_fila = COMP             ; caixas atravessadas: 102 mm de largura da fila
+  ELSE
+    caixas = 3
+    larg_fila = LARG             ; caixas no comprimento: 78 mm de largura da fila
+  ENDIF
+  ALVO = REF
+  ALVO.Y = REF.Y + desl_y + larg_fila / 2
+  ALVO.Z = REF.Z + desl_z
+END
+
+DEF rRampaCheio()
+  ; com carga: mais devagar (rRampaAccCheio)
+  $VEL.CP = 0.6
+  FOR k = 1 TO 6
+    $VEL_AXIS[k] = 55
+  ENDFOR
+END
+
+DEF rRampaVazio()
+  ; sem carga: velocidade total (rRampaAccVazio)
+  $VEL.CP = 1.2
+  FOR k = 1 TO 6
+    $VEL_AXIS[k] = 100
+  ENDFOR
+END
+
+DEF rEsperaPalete()
+  ; equivale ao trapStartPosDir / trapStartPosEsq
+  IF lado == 1 THEN
+    WAIT FOR $IN[3]
+    REF = REF_DIR
+  ELSE
+    WAIT FOR $IN[4]
+    REF = REF_ESQ
+  ENDIF
+END
+
+DEF rTrocaPalete()
+  ; pulso para a empilhadeira trocar o palete e passa para o outro lado
+  PTP HOME
+  IF lado == 1 THEN
+    $OUT[3] = TRUE
+    WAIT SEC 0.5
+    $OUT[3] = FALSE
+    lado = 2
+  ELSE
+    $OUT[4] = TRUE
+    WAIT SEC 0.5
+    $OUT[4] = FALSE
+    lado = 1
+  ENDIF
+END`;
+EXAMPLES.push(
+{ id: "c25", cat: "Paletização", scene: "paletizador", title: "T25 · Paletizador de caixas de refrigerante", src:
+`DEF t25_paletizador()
+  ; PALETIZADOR DE CAIXAS DE REFRIGERANTE
+  ; Convertido do PALL.PRG (ABB RAPID) para KRL, em escala de laboratorio.
+  ; A esteira de roletes traz filas prontas de caixas; o robo monta o palete
+  ; em camadas amarradas de 10 caixas (fila de 4 + fila de 3 + fila de 3).
+  ; Quando um palete enche, a empilhadeira troca e o robo vai para o outro.
+  ;
+  ;   $OUT[6] = motor da esteira de entrada
+  ;   $OUT[7] = fila pedida ao formador: TRUE = 4 caixas, FALSE = 3 caixas
+  ;   $IN[1]  = fila formada no batente (com a quantidade pedida)
+  ;   $IN[3]  = palete direito vazio e pronto   $OUT[3] = palete direito cheio
+  ;   $IN[4]  = palete esquerdo vazio e pronto  $OUT[4] = palete esquerdo cheio
+  ;   $OUT[1] = garra (grampos)
+  INI
+  $GARRA_FECHAMENTO = 60         ; filas com 78 ou 102 mm entre os grampos
+  $GARRA_FORCA = 160             ; fila de 4 caixas = 6 kg -> precisa de 148 N
+  rRampaVazio()
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE                 ; liga a esteira de entrada
+  LOOP
+    rEsperaPalete()              ; palete vazio pronto (direito ou esquerdo)
+    FOR camada = 1 TO CAMADAS
+      FOR linha = 1 TO 3
+        rCalculoPosicao()        ; onde vai esta fila e de quantas caixas ela e
+        $OUT[7] = fila4          ; pede ao formador a fila certa
+        rPegaFila()
+        rDepositaFila()
+        pecas = pecas + caixas
+      ENDFOR
+    ENDFOR
+    rTrocaPalete()               ; palete cheio: empilhadeira troca
+  ENDLOOP
+END
+${CX_CALC("  nivel = camada\n")}
+
+DEF rPegaFila()
+  ; pega a fila parada no batente da esteira (rPegaCaixa)
+  PTP PEGA_APROX
+  WAIT FOR $IN[1]                ; fila formada no batente
+  LIN PEGA
+  $OUT[1] = TRUE                 ; fecha os grampos
+  WAIT SEC 0.3
+  rRampaCheio()
+  LIN PEGA_APROX
+END
+
+DEF rDepositaFila()
+  ; aproxima por cima, afastado 40 mm, e encosta na fila anterior (rDepositaCaixa)
+  ALVO_APROX = ALVO
+  ALVO_APROX.Y = ALVO.Y + 40
+  ALVO_APROX.Z = ALVO.Z + 180
+  PTP ALVO_APROX
+  LIN_REL {Z -150}
+  LIN ALVO
+  $OUT[1] = FALSE                ; abre os grampos
+  WAIT SEC 0.2
+  rRampaVazio()
+  LIN_REL {Z 180}
+END`, dat: `DEFDAT t25_paletizador
+${CX_DAT}
+  ; pega na esteira: centro da fila parada no batente
+${CXP("PEGA", 560, 0, 195)}
+${CXP("PEGA_APROX", 560, 0, 420)}
+ENDDAT` },
+{ id: "c26", cat: "Paletização", scene: "despaletizador", title: "T26 · Despaletizador de caixas de refrigerante", src:
+`DEF t26_despaletizador()
+  ; DESPALETIZADOR DE CAIXAS DE REFRIGERANTE
+  ; Convertido do DEPALL.PRG (ABB RAPID) para KRL, em escala de laboratorio.
+  ; Os paletes chegam cheios (4 camadas amarradas). O robo tira as filas
+  ; de cima para baixo e coloca na esteira de saida, uma fila por vez.
+  ; Palete vazio: a empilhadeira traz outro cheio e o robo vai para o outro lado.
+  ;
+  ;   $IN[3]  = palete direito cheio no lugar    $OUT[3] = palete direito vazio
+  ;   $IN[4]  = palete esquerdo cheio no lugar   $OUT[4] = palete esquerdo vazio
+  ;   $IN[1]  = posicao de carga da esteira ocupada (o contrario de di6_OkParaCarga)
+  ;   $OUT[6] = motor da esteira de saida
+  ;   $OUT[1] = garra (grampos)
+  INI
+  $GARRA_FECHAMENTO = 60
+  $GARRA_FORCA = 160
+  rRampaVazio()
+  PTP HOME
+  $OUT[1] = FALSE
+  $OUT[6] = TRUE                 ; liga a esteira de saida
+  LOOP
+    rEsperaPalete()
+    FOR camada = 1 TO CAMADAS    ; camada 1 = a de cima
+      FOR linha = 1 TO 3
+        rCalculoPosicao()
+        rPegaFila()
+        rDepositaFila()
+        pecas = pecas + caixas
+      ENDFOR
+    ENDFOR
+    rTrocaPalete()               ; palete vazio: empilhadeira traz outro cheio
+  ENDLOOP
+END
+${CX_CALC("  nivel = CAMADAS - camada + 1  ; camada do palete contada de baixo\n")}
+
+DEF rPegaFila()
+  ; pega a fila no palete (rPegaCaixa do DEPALL)
+  ALVO_APROX = ALVO
+  ALVO_APROX.Z = ALVO.Z + 200
+  PTP ALVO_APROX
+  LIN ALVO
+  $OUT[1] = TRUE                 ; fecha os grampos
+  WAIT SEC 0.3
+  rRampaCheio()
+  LIN_REL {Z 40}                 ; descola devagar das filas vizinhas
+  LIN ALVO_APROX
+END
+
+DEF rDepositaFila()
+  ; coloca a fila na esteira de saida (rDepositaCaixa do DEPALL)
+  PTP DEP_APROX
+  WAIT FOR NOT $IN[1]            ; espera a esteira liberar a posicao de carga
+  LIN DEPOSITA
+  $OUT[1] = FALSE                ; abre os grampos
+  WAIT SEC 0.2
+  rRampaVazio()
+  LIN DEP_APROX
+END`, dat: `DEFDAT t26_despaletizador
+${CX_DAT}
+  ; deposito na esteira de saida (posicao de carga)
+${CXP("DEPOSITA", 566, 0, 195)}
+${CXP("DEP_APROX", 566, 0, 420)}
+ENDDAT` },
+);
