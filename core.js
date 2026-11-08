@@ -410,7 +410,7 @@ const RL = (function () {
 
   // ---------- verificação estática de variáveis e chamadas ----------
   const SYS_RO = ["$POS_ACT", "$AXIS_ACT", "$IN", "$NULLFRAME", "$STOPMESS", "$MODE_OP", "$ON_PATH", "$TIMER"];
-  const SYS_RW = ["$GARRA_FORCA", "$GARRA_ABERTURA", "$OUT", "$VEL", "$VEL_AXIS", "$ACC", "$ACC_AXIS", "$APO", "$BASE", "$TOOL", "$OV_PRO", "$BWDSTART", "$H_POS", "$ADVANCE", "$ORI_TYPE", "$CIRC_TYPE", "$IPO_MODE", "$LOAD"];
+  const SYS_RW = ["$GARRA_FORCA", "$GARRA_FECHAMENTO", "$OUT", "$VEL", "$VEL_AXIS", "$ACC", "$ACC_AXIS", "$APO", "$BASE", "$TOOL", "$OV_PRO", "$BWDSTART", "$H_POS", "$ADVANCE", "$ORI_TYPE", "$CIRC_TYPE", "$IPO_MODE", "$LOAD"];
   const BUILTIN_FN = ["SIN", "COS", "TAN", "ACOS", "ASIN", "ATAN2", "SQRT", "ABS", "ROUND", "TRUNC", "MIN", "MAX"];
   const COMPAT_CALLS = ["BAS", "IR_STOPM", "PTP_PARAMS", "USER_INI"];
   const PREDEF = { HOME: "E6AXIS", XHOME: "E6AXIS", PDAT_ACT: "PDAT", FDAT_ACT: "FDAT", LDAT_ACT: "LDAT" };
@@ -495,7 +495,7 @@ const RL = (function () {
         case "VEL": return this.sys.VEL; case "ACC": return this.sys.ACC; case "APO": return this.sys.APO;
         case "VEL_AXIS": return this.sys.VEL_AXIS; case "ACC_AXIS": return this.sys.ACC_AXIS;
         case "GARRA_FORCA": return this.h.getGrip ? this.h.getGrip().forca : 60;
-        case "GARRA_ABERTURA": return this.h.getGrip ? this.h.getGrip().abertura : 100;
+        case "GARRA_FECHAMENTO": return this.h.getGrip ? this.h.getGrip().fechamento : 0;
         case "BASE": return this.sys.BASE; case "TOOL": return this.sys.TOOL; case "OV_PRO": return this.h.getOverride();
         case "MODE_OP": return "#T1"; case "ON_PATH": return true;
         default: if (n in this.sys.misc) return this.sys.misc[n]; throw new KrlError(`variável de sistema ${name} não é simulada`, loc);
@@ -580,7 +580,8 @@ const RL = (function () {
         this.log("info", `$${n} = {X ${fmt(this.sys[n].X)}, Y ${fmt(this.sys[n].Y)}, Z ${fmt(this.sys[n].Z)}, A ${fmt(this.sys[n].A)}, B ${fmt(this.sys[n].B)}, C ${fmt(this.sys[n].C)}}`, loc);
         return;
       }
-      if (n === "GARRA_FORCA" || n === "GARRA_ABERTURA") { need("number"); const lim = n === "GARRA_FORCA" ? [5, 200] : [20, 120]; if (val < lim[0] || val > lim[1]) throw new KrlError(`$${n} deve estar entre ${lim[0]} e ${lim[1]} ${n === "GARRA_FORCA" ? "N" : "mm"}`, loc); if (this.h.gripParam) this.h.gripParam(n === "GARRA_FORCA" ? "forca" : "abertura", val); this.log("info", `$${n} = ${val} ${n === "GARRA_FORCA" ? "N" : "mm"}`, loc); return; }
+      if (n === "GARRA_ABERTURA") throw new KrlError("A garra sempre abre totalmente; use $GARRA_FECHAMENTO (distância entre os dedos ao fechar, 0–120 mm)", loc);
+      if (n === "GARRA_FORCA" || n === "GARRA_FECHAMENTO") { need("number"); const lim = n === "GARRA_FORCA" ? [5, 200] : [0, 120]; if (val < lim[0] || val > lim[1]) throw new KrlError(`$${n} deve estar entre ${lim[0]} e ${lim[1]} ${n === "GARRA_FORCA" ? "N" : "mm"}`, loc); if (this.h.gripParam) this.h.gripParam(n === "GARRA_FORCA" ? "forca" : "fechamento", val); this.log("info", `$${n} = ${val} ${n === "GARRA_FORCA" ? "N" : "mm"}`, loc); return; }
       if (n === "OV_PRO") { need("number"); this.h.setOverride(Math.max(1, Math.min(100, val))); return; }
       if (["POS_ACT", "AXIS_ACT", "IN", "NULLFRAME"].includes(n)) throw new KrlError(`$${n} é somente leitura`, loc);
       this.sys.misc[n] = val; this.warnOnce("sys" + n, `$${n}: aceito, mas sem efeito no simulador`, loc);

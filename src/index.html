@@ -461,8 +461,8 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
       <div class="note" id="ikmsg"></div>
     </div>
     <div class="sec">
-      <h4>Garra</h4>
-      <div class="gr"><label>Abertura</label><input type="range" id="gAb" min="20" max="120" step="1" value="100"><b id="gAbv">100 mm</b></div>
+      <h4>Garra <span style="text-transform:none;letter-spacing:0;font-weight:400">· abre sempre totalmente (120 mm)</span></h4>
+      <div class="gr" title="Distância entre os dedos quando a garra fecha. Precisa ser menor que a largura da peça para prendê-la."><label>Fechamento</label><input type="range" id="gAb" min="0" max="120" step="1" value="0"><b id="gAbv">0 mm</b></div>
       <div class="gr"><label>Força</label><input type="range" id="gFo" min="5" max="200" step="1" value="60"><b id="gFov">60 N</b></div>
       <div class="row"><button id="gOpen" style="flex:1">Abrir</button><button id="gClose" style="flex:1">Fechar</button></div>
       <div class="note" id="gInfo"></div>
@@ -503,7 +503,7 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 <tr><td>WAIT SEC · WAIT FOR · HALT</td><td>Esperas e pausa.</td></tr>
 <tr><td>$IN[n] · $OUT[n]</td><td>Entradas 1–8 no painel; saídas 1–64. $OUT[1] = garra.</td></tr>
 <tr><td>$VEL.CP · $VEL_AXIS[n] · $OV_PRO</td><td>Velocidades e override.</td></tr>
-<tr><td>$GARRA_ABERTURA · $GARRA_FORCA</td><td>Variáveis do Korum (simulam uma garra elétrica): abertura 20–120 mm e força 5–200 N. Ex.: <code>$GARRA_FORCA = 40</code>. Peça mais larga que a abertura não é pega; força abaixo da necessária (peso × 9,81 × 2 ÷ (2 × 0,4)) faz a peça escorregar.</td></tr>
+<tr><td>$GARRA_FECHAMENTO · $GARRA_FORCA</td><td>Variáveis do Korum (simulam uma garra elétrica). A garra sempre abre totalmente (120 mm). Fechamento = distância entre os dedos ao fechar (0–120 mm): precisa ser menor que a largura da peça para prendê-la. Força 5–200 N: abaixo da necessária (peso × 9,81 × 2 ÷ (2 × 0,4)) a peça escorrega. Ex.: <code>$GARRA_FECHAMENTO = 40</code>, <code>$GARRA_FORCA = 50</code>.</td></tr>
 <tr><td>$BASE · $TOOL · $POS_ACT · $AXIS_ACT · $NULLFRAME</td><td>Sistemas de coordenadas e posição atual.</td></tr>
 <tr><td>INTERRUPT DECL/ON/OFF</td><td>Verificado entre instruções (borda de subida).</td></tr>
 <tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>

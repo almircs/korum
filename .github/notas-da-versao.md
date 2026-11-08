@@ -11,7 +11,14 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.8.0 — Garra com abertura e força ajustáveis
+## Novidades da versão 1.8.1 — Garra: fechamento e força
+- A garra agora **abre sempre totalmente (120 mm)**; o que se ajusta é o **fechamento** (0–120 mm, distância entre os dedos quando a garra fecha) e a **força** (5–200 N)
+- Fechamento maior ou igual à largura da peça: os dedos não encostam e a peça não é presa (o console diz qual valor usar)
+- Aumentar o fechamento com a peça presa solta a peça
+- No programa: `$GARRA_FECHAMENTO = 40` e `$GARRA_FORCA = 50` (substitui `$GARRA_ABERTURA`)
+- IHM do Modo Painel: fechamento ±10 mm e força ±10 N
+
+## Versão 1.8.0 — Garra com abertura e força ajustáveis
 - Novo bloco **Garra** no painel da direita: **Abertura** (20–120 mm) e **Força** (5–200 N) reguláveis à mão, botões **Abrir** e **Fechar** e informação da peça mais próxima (tamanho, peso e força necessária)
 - A simulação respeita os ajustes:
   - peça mais larga que a abertura não é pega (os dedos batem na peça)
