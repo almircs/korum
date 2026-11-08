@@ -11,7 +11,17 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.8.1 — Garra: fechamento e força
+## Novidades da versão 1.9.0 — Robô barista e sorvete expresso
+- Novos cenários **Robô barista (café)** e **Sorvete expresso**, com equipamentos que funcionam:
+  - **dispensador de copos** (repõe sozinho, 20 copos, sensor `$IN[2]`)
+  - **cafeteira / máquina de sorvete**: `$OUT[3]` inicia o preparo, o copo enche aos poucos com o café ou o sorvete (com o filete saindo do bico), `$IN[3]` avisa quando está cheio; sem copo sob o bico, derrama
+  - **balcão de entrega com cliente**: o cliente chega e pede (`$IN[1]`), retira o copo cheio e o próximo chega; copo vazio gera reclamação; `$IN[4]` = balcão ocupado
+- **T23 · Robô barista: servir café** — pega o copo vazio, coloca na cafeteira, espera o café, pega o copo cheio devagar e entrega no balcão (3 clientes)
+- **T24 · Sorvete expresso** — como no vídeo: o robô segura o copo sob o bico e faz círculos enquanto a máquina serve
+- Copos descartáveis com conteúdo visível; a garra avisa se a força puder amassar o copo
+- Cenários podem definir a posição inicial da câmera
+
+## Versão 1.8.1 — Garra: fechamento e força
 - A garra agora **abre sempre totalmente (120 mm)**; o que se ajusta é o **fechamento** (0–120 mm, distância entre os dedos quando a garra fecha) e a **força** (5–200 N)
 - Fechamento maior ou igual à largura da peça: os dedos não encostam e a peça não é presa (o console diz qual valor usar)
 - Aumentar o fechamento com a peça presa solta a peça

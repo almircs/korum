@@ -509,6 +509,11 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 <tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>
 <tr><td>SIN COS TAN ACOS ATAN2 SQRT ABS</td><td>Funções (graus).</td></tr>
 </table>
+<h3>Robô barista e sorvete expresso (exemplos T23 e T24)</h3>
+<ul><li><b>Dispensador de copos</b>: entrega um copo novo sozinho; <code>$IN[2]</code> = copo disponível.</li>
+<li><b>Cafeteira / máquina de sorvete</b>: <code>$OUT[3] = TRUE</code> inicia o preparo se houver copo sob o bico (na bandeja ou segurado pelo robô); o copo enche aos poucos; <code>$IN[3]</code> = copo cheio. Sem copo sob o bico, o produto derrama.</li>
+<li><b>Balcão de entrega</b>: um cliente chega e faz o pedido (<code>$IN[1]</code>); ao receber o copo cheio, ele leva e outro cliente chega. <code>$IN[4]</code> = balcão ocupado; copo vazio entregue gera reclamação.</li>
+<li>Os copos são pegos pelo lado, com a garra na horizontal (<code>B 0</code>) e pouca força.</li></ul>
 <h3>Trajeto por pontos (aba Trajeto)</h3>
 <ul><li>Ligue <b>Marcar pontos</b> e clique no 3D: numa peça = <b>Pegar</b>; numa superfície (esteira, mesa, palete, chão) = <b>Soltar</b> (ou <b>Passar por</b> se não houver peça na garra). Clicar em cima de outra peça com "Soltar" empilha.</li>
 <li>Cada ponto vira T1, T2… no .dat (com T1_APROX acima) e o programa KRL é reescrito a cada mudança: aproximação por PTP, descida e subida em LIN, garra com $OUT[1].</li>

@@ -1,0 +1,59 @@
+DEF t23_cafe()
+  ; Robo barista: pega o copo vazio, coloca na cafeteira, espera o cafe
+  ; ficar pronto, pega o copo cheio e entrega ao cliente no balcao.
+  ;   $IN[1]  = pedido do cliente (o cliente chega sozinho no balcao)
+  ;   $IN[2]  = copo disponivel no dispensador
+  ;   $OUT[3] = liga a cafeteira (preparar)     $IN[3] = cafe pronto
+  ;   $IN[4]  = balcao ocupado                  $OUT[5] = luz "pedido pronto"
+  ; A garra trabalha na horizontal (B 0): pega o copo pelo lado.
+  DECL INT pedido
+  INI
+  $VEL.CP = 0.5
+  $GARRA_FECHAMENTO = 40         ; copo de 60 mm
+  $GARRA_FORCA = 20              ; copo plastico: pouca forca
+  PTP HOME
+  $OUT[1] = FALSE
+  FOR pedido = 1 TO 3            ; troque por LOOP para atender sem parar
+    WAIT FOR $IN[1]              ; espera um cliente pedir
+
+    ; 1) pegar o copo vazio no dispensador
+    WAIT FOR $IN[2]
+    PTP COPO_APROX
+    LIN COPO
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    LIN_REL {Z 20}
+    LIN COPO_APROX
+
+    ; 2) colocar o copo na bandeja da cafeteira
+    PTP MAQ_APROX
+    LIN MAQ
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN MAQ_APROX
+
+    ; 3) preparar o cafe
+    $OUT[3] = TRUE
+    WAIT FOR $IN[3]              ; cafe pronto
+    $OUT[3] = FALSE
+
+    ; 4) pegar o copo cheio, devagar
+    LIN MAQ
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    $VEL.CP = 0.15
+    LIN_REL {Z 15}
+    LIN MAQ_APROX
+
+    ; 5) entregar no balcao
+    WAIT FOR NOT $IN[4]          ; balcao livre
+    PTP ENT_APROX
+    LIN ENTREGA
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN ENT_APROX
+    $VEL.CP = 0.5
+    $OUT[5] = TRUE               ; luz de pedido pronto
+    PTP HOME
+  ENDFOR
+END

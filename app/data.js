@@ -1204,3 +1204,143 @@ END`, dat: `DEFDAT t22_contar_pacotes
   DECL E6POS DESCARTE = {X 450, Y -420, Z 350, A 0, B 90, C 0}
 ENDDAT` },
 );
+
+// ================== Robô barista (café) e sorvete expresso (v1.9) ==================
+const CELL_CAFE = (produto) => ({ cam: { pos: [0.15, 1.75, 1.85], alvo: [0.42, 0.38, -0.12] }, nome: produto === "sorvete" ? "Sorvete expresso (como no vídeo)" : "Robô barista (café)", objetos: [
+  { tipo: "dispensador", nome: "Dispensador de copos", x: 530, y: -530, w: 200, d: 200, h: 300, saida: [460, -460], estoque: 20, sensor: 2, produto },
+  { tipo: "cafeteira", nome: produto === "sorvete" ? "Máquina de sorvete" : "Cafeteira", x: 830, y: 0, w: 240, d: 320, h: 900, bico: [650, 0], bicoZ: 510, motor: 3, sensor: 3, tempo: produto === "sorvete" ? 5 : 4, produto },
+  { tipo: "bloco", nome: "Bandeja", x: 650, y: 0, w: 120, d: 200, h: 300 },
+  { tipo: "balcao", nome: "Balcão de entrega", x: 360, y: 610, w: 340, d: 160, h: 300, entrega: [325, 563], sensor: 4, pedido: 1, luz: 5, produto }], pecas: [] });
+SCENES.cafe = CELL_CAFE("cafe");
+SCENES.sorvete = CELL_CAFE("sorvete");
+const CP = (n, x, y, z, a) => `  DECL E6POS ${n} = {X ${x}, Y ${y}, Z ${z}, A ${a}, B 0, C 0}`;
+EXAMPLES.push(
+{ id: "c23", cat: "Aplicações avançadas", scene: "cafe", title: "T23 · Robô barista: servir café", src:
+`DEF t23_cafe()
+  ; Robo barista: pega o copo vazio, coloca na cafeteira, espera o cafe
+  ; ficar pronto, pega o copo cheio e entrega ao cliente no balcao.
+  ;   $IN[1]  = pedido do cliente (o cliente chega sozinho no balcao)
+  ;   $IN[2]  = copo disponivel no dispensador
+  ;   $OUT[3] = liga a cafeteira (preparar)     $IN[3] = cafe pronto
+  ;   $IN[4]  = balcao ocupado                  $OUT[5] = luz "pedido pronto"
+  ; A garra trabalha na horizontal (B 0): pega o copo pelo lado.
+  DECL INT pedido
+  INI
+  $VEL.CP = 0.5
+  $GARRA_FECHAMENTO = 40         ; copo de 60 mm
+  $GARRA_FORCA = 20              ; copo plastico: pouca forca
+  PTP HOME
+  $OUT[1] = FALSE
+  FOR pedido = 1 TO 3            ; troque por LOOP para atender sem parar
+    WAIT FOR $IN[1]              ; espera um cliente pedir
+
+    ; 1) pegar o copo vazio no dispensador
+    WAIT FOR $IN[2]
+    PTP COPO_APROX
+    LIN COPO
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    LIN_REL {Z 20}
+    LIN COPO_APROX
+
+    ; 2) colocar o copo na bandeja da cafeteira
+    PTP MAQ_APROX
+    LIN MAQ
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN MAQ_APROX
+
+    ; 3) preparar o cafe
+    $OUT[3] = TRUE
+    WAIT FOR $IN[3]              ; cafe pronto
+    $OUT[3] = FALSE
+
+    ; 4) pegar o copo cheio, devagar
+    LIN MAQ
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    $VEL.CP = 0.15
+    LIN_REL {Z 15}
+    LIN MAQ_APROX
+
+    ; 5) entregar no balcao
+    WAIT FOR NOT $IN[4]          ; balcao livre
+    PTP ENT_APROX
+    LIN ENTREGA
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN ENT_APROX
+    $VEL.CP = 0.5
+    $OUT[5] = TRUE               ; luz de pedido pronto
+    PTP HOME
+  ENDFOR
+END`, dat: `DEFDAT t23_cafe
+  ; pontos com a garra na horizontal (B 0), apontando para o alvo (A)
+${CP("COPO_APROX", 368, -368, 345, -45)}
+${CP("COPO", 460, -460, 345, -45)}
+${CP("MAQ_APROX", 520, 0, 345, 0)}
+${CP("MAQ", 650, 0, 345, 0)}
+${CP("ENT_APROX", 260, 450, 348, 60)}
+${CP("ENTREGA", 325, 563, 348, 60)}
+ENDDAT` },
+{ id: "c24", cat: "Aplicações avançadas", scene: "sorvete", title: "T24 · Sorvete expresso: segurar o copo sob o bico", src:
+`DEF t24_sorvete()
+  ; Como no video: o robo segura o copo sob o bico da maquina
+  ; e faz circulos enquanto o sorvete sai, para formar a espiral.
+  ;   $IN[1] = pedido do cliente   $IN[2] = copo no dispensador
+  ;   $OUT[3] = maquina servindo   $IN[3] = copo cheio   $IN[4] = balcao ocupado
+  DECL INT pedido, volta
+  INI
+  $VEL.CP = 0.5
+  $GARRA_FECHAMENTO = 40
+  $GARRA_FORCA = 20
+  PTP HOME
+  $OUT[1] = FALSE
+  FOR pedido = 1 TO 2
+    WAIT FOR $IN[1]
+    WAIT FOR $IN[2]
+    PTP COPO_APROX
+    LIN COPO
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    LIN_REL {Z 20}
+    LIN COPO_APROX
+
+    ; leva o copo para baixo do bico (segurando)
+    PTP BICO_APROX
+    LIN BICO
+    $OUT[3] = TRUE               ; maquina comeca a servir
+    $VEL.CP = 0.05
+    FOR volta = 1 TO 3           ; circulos pequenos (raio 12 mm)
+      CIRC BICO_C1, BICO_C2
+      CIRC BICO_C3, BICO
+    ENDFOR
+    WAIT FOR $IN[3]              ; copo cheio
+    $OUT[3] = FALSE
+    $VEL.CP = 0.15
+    LIN_REL {Z -40}              ; desce devagar, afastando do bico
+    LIN BICO_APROX
+
+    ; entrega
+    WAIT FOR NOT $IN[4]
+    $VEL.CP = 0.4
+    PTP ENT_APROX
+    LIN ENTREGA
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN ENT_APROX
+    $VEL.CP = 0.5
+    PTP HOME
+  ENDFOR
+END`, dat: `DEFDAT t24_sorvete
+${CP("COPO_APROX", 368, -368, 345, -45)}
+${CP("COPO", 460, -460, 345, -45)}
+${CP("BICO_APROX", 520, 0, 400, 0)}
+${CP("BICO", 638, 0, 400, 0)}
+${CP("BICO_C1", 650, 12, 400, 0)}
+${CP("BICO_C2", 662, 0, 400, 0)}
+${CP("BICO_C3", 650, -12, 400, 0)}
+${CP("ENT_APROX", 260, 450, 348, 60)}
+${CP("ENTREGA", 325, 563, 348, 60)}
+ENDDAT` },
+);

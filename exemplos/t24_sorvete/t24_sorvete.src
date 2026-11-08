@@ -1,0 +1,49 @@
+DEF t24_sorvete()
+  ; Como no video: o robo segura o copo sob o bico da maquina
+  ; e faz circulos enquanto o sorvete sai, para formar a espiral.
+  ;   $IN[1] = pedido do cliente   $IN[2] = copo no dispensador
+  ;   $OUT[3] = maquina servindo   $IN[3] = copo cheio   $IN[4] = balcao ocupado
+  DECL INT pedido, volta
+  INI
+  $VEL.CP = 0.5
+  $GARRA_FECHAMENTO = 40
+  $GARRA_FORCA = 20
+  PTP HOME
+  $OUT[1] = FALSE
+  FOR pedido = 1 TO 2
+    WAIT FOR $IN[1]
+    WAIT FOR $IN[2]
+    PTP COPO_APROX
+    LIN COPO
+    $OUT[1] = TRUE
+    WAIT SEC 0.3
+    LIN_REL {Z 20}
+    LIN COPO_APROX
+
+    ; leva o copo para baixo do bico (segurando)
+    PTP BICO_APROX
+    LIN BICO
+    $OUT[3] = TRUE               ; maquina comeca a servir
+    $VEL.CP = 0.05
+    FOR volta = 1 TO 3           ; circulos pequenos (raio 12 mm)
+      CIRC BICO_C1, BICO_C2
+      CIRC BICO_C3, BICO
+    ENDFOR
+    WAIT FOR $IN[3]              ; copo cheio
+    $OUT[3] = FALSE
+    $VEL.CP = 0.15
+    LIN_REL {Z -40}              ; desce devagar, afastando do bico
+    LIN BICO_APROX
+
+    ; entrega
+    WAIT FOR NOT $IN[4]
+    $VEL.CP = 0.4
+    PTP ENT_APROX
+    LIN ENTREGA
+    $OUT[1] = FALSE
+    WAIT SEC 0.2
+    LIN ENT_APROX
+    $VEL.CP = 0.5
+    PTP HOME
+  ENDFOR
+END

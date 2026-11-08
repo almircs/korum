@@ -169,6 +169,7 @@ function openProject(id) {
   store.currentId = id; const p = cur(); if (!p) return;
   $("projName").value = p.name; S.errLine = null; S.curLine = null; S.warnLines.clear();
   setFile("src"); updateNames(); applyScene(p.scene); resetCell(true); previewPoints();
+  if (p.scene.cam) { camera.position.set(...p.scene.cam.pos); controls.target.set(...p.scene.cam.alvo); controls.update(); document.querySelectorAll("[data-cam]").forEach(b => b.classList.remove("on")); }
   S.exTargets = p.exercise ? (EXERCISES.find(x => x.id === p.exercise) || {}).alvos || [] : []; showTargets();
   trSel = -1; trDraw(); if (S.pane === "traj") trRender();
   markDirty();
@@ -262,7 +263,8 @@ arrow([1, 0, 0], 0xff5a5a, "X"); arrow([0, 1, 0], 0x43c37a, "Y"); arrow([0, 0, 1
 // ---- cenário dinâmico ----
 let cellGroup = new THREE.Group(); root.add(cellGroup);
 const obMeshes = {}; let parts = []; let held = null, gripClosed = false;
-function buildObject(o, id, grp) {
+const devLabels = {}, devPersons = {}, devStreams = {};
+function buildObject(o, id, grp) { const idx = +id.slice(1);
   const { x, y, w, d, h } = o; const ms = [];
   if (o.tipo === "mesa") {
     ms.push(mesh(box(w, d, 20), mat.top, grp, [x, y, h - 10]));
@@ -282,11 +284,37 @@ function buildObject(o, id, grp) {
     ms.push(mesh(box(w, d, h), mat.machine, grp, [x, y, h / 2]));
     mesh(box(w * 0.6, 6, h * 0.45), mat.glass, grp, [x, y - d / 2 - 3, h * 0.55]);
     mesh(box(w, d + 4, 16), mat.yellow, grp, [x, y, h - 8]);
+  } else if (o.tipo === "dispensador") {
+    ms.push(mesh(box(w, d, h), mat.table, grp, [x, y, h / 2]));
+    const [sx, sy] = o.saida, tx = x + (x - sx) * 0.35 + 30, ty = y + (y - sy) * 0.35 - 30;
+    mesh(new THREE.CylinderGeometry(42, 42, 380, 24, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xaad4ff, transparent: true, opacity: 0.25, side: THREE.DoubleSide }), grp, [tx, ty, h + 190]);
+    for (let k = 0; k < 12; k++) mesh(new THREE.CylinderGeometry(30, 24, 26, 20, 1, true).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xf4f1ea, side: THREE.DoubleSide }), grp, [tx, ty, h + 30 + k * 26]);
+    mesh(box(70, 70, 6), mat.steel, grp, [sx, sy, h + 3]);
+    devLabels[idx] = label(grp, o.nome, [x, y - d / 2 - 30, h + 420], "lbl ob", null, "objeto");
+  } else if (o.tipo === "cafeteira") {
+    ms.push(mesh(box(w, d, h), new THREE.MeshStandardMaterial({ color: o.produto === "sorvete" ? 0xb9c2cc : 0x2a2d33, roughness: 0.35, metalness: 0.6 }), grp, [x, y, h / 2]));
+    const [bx, by] = o.bico, bz = o.bicoZ || 330, front = x - w / 2;
+    mesh(box(front - bx + 40, 70, 40), mat.steel, grp, [(front + bx) / 2 - 10, by, bz + 30]);
+    mesh(cylZ(10, 30), mat.dark, grp, [bx, by, bz + 5]);
+    mesh(box(10, d * 0.7, 120), new THREE.MeshStandardMaterial({ color: 0x111316, emissive: o.produto === "sorvete" ? 0x223344 : 0x331a08 }), grp, [front - 2, y, h - 120]);
+    const stream = mesh(cylZ(4, 1, 10), new THREE.MeshStandardMaterial({ color: o.produto === "sorvete" ? 0xf6e7c8 : 0x3a1f0c }), grp, [bx, by, bz]); stream.visible = false; devStreams[idx] = stream;
+    devLabels[idx] = label(grp, o.nome, [x, y, h + 30], "lbl ob", null, "objeto");
+  } else if (o.tipo === "balcao") {
+    ms.push(mesh(box(w, d, h), new THREE.MeshStandardMaterial({ color: 0xd0475e, roughness: 0.4 }), grp, [x, y, h / 2]));
+    mesh(box(w + 10, d + 10, 8), new THREE.MeshStandardMaterial({ color: 0xf2f2f2 }), grp, [x, y, h + 4]);
+    const [ex, ey] = o.entrega; mesh(new THREE.RingGeometry(36, 44, 32), new THREE.MeshBasicMaterial({ color: 0x43c37a, side: THREE.DoubleSide }), grp, [ex, ey, h + 9]);
+    mesh(box(w, 6, 360), new THREE.MeshStandardMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.18 }), grp, [x, y + d / 2 + 6, h + 180]);
+    const person = new THREE.Group(); person.position.set(x, y + d / 2 + 260, 0); grp.add(person);
+    const cl = new THREE.MeshStandardMaterial({ color: 0x2f8f9d, roughness: 0.6 }), sk = new THREE.MeshStandardMaterial({ color: 0xe0b48a, roughness: 0.7 });
+    mesh(new THREE.CapsuleGeometry(105, 380, 6, 16).rotateX(Math.PI / 2), cl, person, [0, 0, 520]); mesh(new THREE.CylinderGeometry(55, 45, 280, 12).rotateX(Math.PI / 2), mat.dark, person, [0, 0, 140]);
+    mesh(new THREE.SphereGeometry(85, 20, 16), sk, person, [0, 0, 880]);
+    person.visible = false; devPersons[idx] = person;
+    devLabels[idx] = label(grp, o.nome, [x, y - d / 2 - 30, h + 30], "lbl ob", null, "objeto");
   } else {
     ms.push(mesh(box(w, d, h), mat.steel, grp, [x, y, h / 2]));
   }
   obMeshes[id] = ms;
-  label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
+  if (!["dispensador", "cafeteira", "balcao"].includes(o.tipo)) label(grp, o.nome, [x, y + (o.tipo === "esteira" ? -d / 2 - 40 : d / 2 + 30), h + 15], "lbl ob", null, "objeto");
 }
 // dimensões da peça no plano (considera giro de 90° em Z)
 function pdim(p) { const s = (p && p.userData.size) || [50, 50, 50], sw = p && Math.abs(Math.sin(p.rotation.z)) > 0.7; return { wx: sw ? s[1] : s[0], wy: sw ? s[0] : s[1], h: s[2] }; }
@@ -310,23 +338,35 @@ function packMaterials() {
   const side = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c2), roughness: 0.3, metalness: 0.05 });
   packMats = [side, side, side, side, top, side]; return packMats;
 }
-function makePart(x, y, size, tipo, spawned) {
+function makePart(x, y, size, tipo, spawned, produto) {
   const s = size || [50, 50, 50];
+  if (tipo === "copo") { // copo descartável com o conteúdo (café ou sorvete) que sobe ao encher
+    const g = new THREE.CylinderGeometry(s[0] / 2, s[0] / 2 - 6, s[2], 28, 1, true).rotateX(Math.PI / 2);
+    const m = mesh(g, new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.5, side: THREE.DoubleSide }), root, [x, y, 0]);
+    mesh(new THREE.CylinderGeometry(s[0] / 2 - 6, s[0] / 2 - 6, 3, 28).rotateX(Math.PI / 2), m.material, m, [0, 0, -s[2] / 2 + 1.5]);
+    mesh(new THREE.TorusGeometry(s[0] / 2, 1.6, 6, 28), new THREE.MeshStandardMaterial({ color: 0xd8d2c4 }), m, [0, 0, s[2] / 2]);
+    const sorv = produto === "sorvete";
+    const liq = mesh(new THREE.CylinderGeometry(s[0] / 2 - 3, s[0] / 2 - 7, s[2] - 12, 24).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: sorv ? 0xf6e7c8 : 0x4a2a12, roughness: sorv ? 0.8 : 0.25 }), m, [0, 0, 0]);
+    m.userData.liq = liq;
+    if (sorv) { const dome = mesh(new THREE.ConeGeometry(s[0] / 2 - 2, 55, 24).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xf8ecd2, roughness: 0.85 }), m, [0, 0, s[2] / 2 + 26]); m.userData.dome = dome; }
+    m.userData.size = s; m.userData.spawned = !!spawned; m.userData.tipo = "copo"; setFill(m, 0); return m;
+  }
   const m = mesh(box(s[0], s[1], s[2]), tipo === "pacote" ? packMaterials() : mat.part, root, [x, y, 0]);
-  m.userData.size = s; m.userData.spawned = !!spawned; return m;
+  m.userData.size = s; m.userData.spawned = !!spawned; m.userData.tipo = tipo || "peca"; return m;
 }
 function applyScene(sc) {
   if (held) { held = null; }
   root.remove(cellGroup); cellGroup.traverse(o => { if (o.element) o.element.remove(); });
   parts.forEach(p => { p.parent && p.parent.remove(p); });
   for (const k in obMeshes) delete obMeshes[k];
+  [devLabels, devPersons, devStreams].forEach(o => { for (const k in o) delete o[k]; });
   cellGroup = new THREE.Group(); root.add(cellGroup);
   const obs = [];
   sc.objetos.forEach((o, i) => { const id = "o" + i; buildObject(o, id, cellGroup); obs.push({ id, nome: o.nome, min: [o.x - o.w / 2, o.y - o.d / 2, 0], max: [o.x + o.w / 2, o.y + o.d / 2, o.h] }); });
   RL.setObstacles(obs);
   parts = [];
   sc.pecas.forEach(pc => { const [x, y, s, tipo] = Array.isArray(pc) ? pc : [pc.x, pc.y, pc.s, pc.tipo]; const m = makePart(x, y, s, tipo, false); m.position.z = surfaceBelow(x, y, m) + m.userData.size[2] / 2; m.userData.home = m.position.toArray(); parts.push(m); });
-  convAcc = {};
+  convAcc = {}; devState = {}; sc.objetos.forEach((o, i) => { if (devLabels[i]) devState[i] = { label: devLabels[i], person: devPersons[i], stream: devStreams[i] }; });
 }
 function partPos(p) { const v = p.getWorldPosition(new THREE.Vector3()); root.worldToLocal(v); return { x: v.x, y: v.y, z: v.z }; }
 // trajetória
@@ -442,7 +482,7 @@ function setOut(n, v) { S.outs[n] = v; if (n <= 8) $("outs").children[n - 1].cla
 const GR = { fechamento: 0, forca: 60 };
 const ABERTURA = 120; // a garra sempre abre totalmente
 const MU = 0.4, SEG = 2; // atrito dedo/peça e fator de segurança
-const massOf = p => p.userData.size && p.userData.size[0] === 100 ? 1.2 : 0.5; // pacote 1,2 kg · peça 0,5 kg
+const massOf = p => p.userData.tipo === "copo" ? 0.03 + 0.25 * (p.userData.fill || 0) : p.userData.size && p.userData.size[0] === 100 ? 1.2 : 0.5; // copo 30 g + conteúdo · pacote 1,2 kg · peça 0,5 kg
 const forceNeeded = p => Math.ceil(massOf(p) * 9.81 * SEG / (2 * MU));
 const openY = () => ABERTURA / 2 + 6;
 const closedY = w => Math.max(6, w) / 2 + 6;
@@ -483,6 +523,7 @@ function gripper(close) {
       else {
         tool.attach(best); held = best; grip.target = w / 2 + 6; S.events.push({ t: "grip", ok: true });
         log("ok", `Garra fechada: peça presa (${GR.forca} N, mínimo ${need} N).`);
+        if (best.userData.tipo === "copo" && GR.forca > 50) log("warn", `Força de ${GR.forca} N pode amassar o copo plástico (recomendado até 50 N).`);
         if (best.userData.size && best.userData.size[0] === 100 && GR.forca > 120) log("warn", `Força de ${GR.forca} N pode amassar o pacote (recomendado até 120 N).`);
       }
     } else { grip.target = closedY(GR.fechamento); S.events.push({ t: "grip", ok: false }); log("info", best ? `Garra fechada vazia (peça mais próxima a ${Math.round(bd)} mm do TCP).` : "Garra fechada vazia."); }
@@ -510,6 +551,7 @@ function resetCell(silent) {
   if (held) { root.attach(held); held = null; }
   parts = parts.filter(p => { if (p.userData.spawned) { p.parent && p.parent.remove(p); return false; } return true; });
   parts.forEach(p => { if (p.parent !== root) root.attach(p); p.position.fromArray(p.userData.home); p.rotation.set(0, 0, 0); }); convAcc = {};
+  const ds = devState; devState = {}; Object.keys(ds).forEach(i => devState[i] = { label: ds[i].label, person: ds[i].person, stream: ds[i].stream }); if (S.ins) [1, 2, 3, 4].forEach(n => setIn(n, false));
   gripClosed = false; grip.target = openY(); for (let n = 1; n <= 64; n++) if (S.outs[n]) { S.outs[n] = false; if (n <= 8) $("outs").children[n - 1].classList.remove("on"); }
   setTool(RL.DEFAULT_TOOL); S.base = { X: 0, Y: 0, Z: 0, A: 0, B: 0, C: 0 }; clearTrail(); S.errLine = null; render(); setStatus("idle"); $("ikmsg").textContent = ""; fillGo();
   if (!silent) log("info", "Célula reiniciada: robô em HOME, peças nas posições iniciais.");
@@ -545,6 +587,71 @@ function conveyors(dt) {
   });
 }
 
+// ---- dispositivos da célula de café/sorvete: dispensador de copos, cafeteira/máquina de sorvete, balcão com cliente ----
+let devState = {};
+const cupHeld = () => held && held.userData.tipo === "copo" ? held : null;
+function cupsFree() { return parts.filter(q => q.userData.tipo === "copo"); }
+function setIn(n, v) { if (!!S.ins[n] !== v) { S.ins[n] = v; const b = $("ins").children[n - 1]; if (b) b.classList.toggle("on", v); } }
+function setFill(cup, f) {
+  cup.userData.fill = Math.max(0, Math.min(1, f)); const liq = cup.userData.liq, s = cup.userData.size; if (!liq) return;
+  liq.visible = cup.userData.fill > 0.01; liq.scale.z = Math.max(0.01, cup.userData.fill); liq.position.z = -s[2] / 2 + 4 + (s[2] - 12) * cup.userData.fill / 2;
+  if (cup.userData.dome) cup.userData.dome.visible = cup.userData.fill > 0.97;
+}
+function devices(dt) {
+  const p = cur(); if (!p || dt <= 0) return;
+  p.scene.objetos.forEach((o, i) => {
+    const st = devState[i] = devState[i] || {};
+    if (o.tipo === "dispensador") {
+      const [sx, sy] = o.saida; const there = cupsFree().find(q => q.parent === root && Math.hypot(q.position.x - sx, q.position.y - sy) < 25);
+      if (st.estoque === undefined) st.estoque = o.estoque || 20;
+      if (!there && st.estoque > 0) { st.t = (st.t || 0) + dt; if (st.t > 0.9) { st.t = 0; st.estoque--; const c = makePart(sx, sy, [60, 60, 90], "copo", true, o.produto); c.position.z = o.h + 45; parts.push(c); } } else st.t = 0;
+      if (o.sensor) setIn(o.sensor, !!there);
+      if (st.label) st.label.element.textContent = `${o.nome} · ${st.estoque} copos`;
+    }
+    if (o.tipo === "cafeteira") {
+      const [bx, by] = o.bico, bz = o.bicoZ || 330, on = !!S.outs[o.motor];
+      // copo sob o bico: apoiado na bandeja ou segurado pelo robô
+      const cands = cupsFree().map(q => ({ q, w: partPos(q) })).filter(c => Math.hypot(c.w.x - bx, c.w.y - by) < 35 && c.w.z < bz && c.w.z > bz - 260);
+      const cup = cands.length ? cands[0].q : null;
+      if (on && !st.prev) { // borda de subida: iniciar preparo
+        if (!cup) { log("err", `${o.nome}: não há copo sob o bico — ${o.produto === "sorvete" ? "sorvete caiu" : "café derramou"} na bandeja!`); st.running = false; }
+        else if ((cup.userData.fill || 0) >= 1) log("warn", `${o.nome}: o copo já está cheio.`);
+        else { st.running = true; log("info", `${o.nome}: preparando ${o.produto === "sorvete" ? "o sorvete" : "o café"}…`); }
+      }
+      if (!on && st.running) { st.running = false; log("warn", `${o.nome}: preparo interrompido (sinal desligado antes do fim).`); }
+      st.prev = on;
+      if (st.running) {
+        if (!cup) { st.running = false; log("err", `${o.nome}: o copo saiu de baixo do bico durante o preparo — ${o.produto === "sorvete" ? "sorvete" : "café"} derramado!`); }
+        else { setFill(cup, (cup.userData.fill || 0) + dt / (o.tempo || 4)); if (cup.userData.fill >= 1) { st.running = false; log("ok", `${o.nome}: ${o.produto === "sorvete" ? "sorvete servido" : "café pronto"}.`); } }
+      }
+      if (st.stream) { st.stream.visible = !!(st.running && cup); if (st.stream.visible) { const top = partPos(cup).z + 45, len = Math.max(5, bz - top); st.stream.scale.z = len; st.stream.position.set(bx, by, top + len / 2); } }
+      if (o.sensor) setIn(o.sensor, !!(cup && (cup.userData.fill || 0) >= 1));
+    }
+    if (o.tipo === "balcao") {
+      const [ex, ey] = o.entrega;
+      const onCounter = cupsFree().filter(q => q.parent === root && Math.abs(q.position.x - o.x) < o.w / 2 && Math.abs(q.position.y - o.y) < o.d / 2 && q.position.z < o.h + 60);
+      if (o.sensor) setIn(o.sensor, onCounter.length > 0);
+      if (st.atendidos === undefined) { st.atendidos = 0; st.wait = 1.5; }
+      if (!st.cliente) { st.wait -= dt; if (st.wait <= 0 && !onCounter.length) { st.cliente = true; st.n = (st.n || 0) + 1; log("info", `👤 Cliente ${st.n} chegou e pediu ${o.produto === "sorvete" ? "um sorvete" : "um café"} ($IN[${o.pedido}]).`); } }
+      if (o.pedido) setIn(o.pedido, !!st.cliente);
+      if (st.person) st.person.visible = !!st.cliente;
+      const c = onCounter.find(q => Math.hypot(q.position.x - ex, q.position.y - ey) < 60);
+      if (st.cliente && c) {
+        st.take = (st.take || 0) + dt;
+        if (st.take > 1.4) {
+          st.take = 0;
+          if ((c.userData.fill || 0) >= 0.9) {
+            parts = parts.filter(q => q !== c); c.parent && c.parent.remove(c); st.cliente = false; st.atendidos++; st.wait = 2.5;
+            log("ok", `☕ Cliente ${st.n} recebeu ${o.produto === "sorvete" ? "o sorvete 🍦" : "o café"}. Atendidos: ${st.atendidos}.`);
+            if (o.luz) { S.outs[o.luz] = false; if (o.luz <= 8) $("outs").children[o.luz - 1].classList.remove("on"); }
+          } else if (!st.reclamou) { st.reclamou = true; log("warn", `😕 Cliente ${st.n}: "o copo está vazio!" — retire o copo e sirva de novo.`); }
+        }
+      } else { st.take = 0; if (!c) st.reclamou = false; }
+      if (st.label) st.label.element.textContent = `${o.nome} · atendidos: ${st.atendidos}`;
+    }
+  });
+}
+
 // ---- câmera e laço de renderização ----
 const TARGET = new THREE.Vector3(0.32, 0.36, 0.18);
 const CAMS = { iso: [2.0, 1.45, 1.75], front: [2.6, 0.55, 0.18], side: [0.32, 0.55, 2.6], top: [0.32, 3.2, 0.19] };
@@ -574,7 +681,7 @@ function resize() { const w = view.clientWidth, h = view.clientHeight; if (!w ||
 new ResizeObserver(resize).observe(view);
 renderer.setAnimationLoop(() => {
   controls.update();
-  { const nw = performance.now(); conveyors(Math.min(0.1, (nw - convLast) / 1000)); convLast = nw; }
+  { const nw = performance.now(); const dtc = Math.min(0.1, (nw - convLast) / 1000); conveyors(dtc); devices(dtc); convLast = nw; }
   if (Math.abs(grip.cur - grip.target) > 0.1) { grip.cur += Math.sign(grip.target - grip.cur) * Math.min(Math.abs(grip.target - grip.cur), 3); fA.position.y = grip.cur; fB.position.y = -grip.cur; }
   updatePanel(); renderer.render(scene, camera);
   root.traverse(o => { if (o.isCSS2DObject) o.visible = VIS[o.userData.k] !== false; });

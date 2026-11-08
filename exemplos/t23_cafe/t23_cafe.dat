@@ -1,0 +1,9 @@
+DEFDAT t23_cafe
+  ; pontos com a garra na horizontal (B 0), apontando para o alvo (A)
+  DECL E6POS COPO_APROX = {X 368, Y -368, Z 345, A -45, B 0, C 0}
+  DECL E6POS COPO = {X 460, Y -460, Z 345, A -45, B 0, C 0}
+  DECL E6POS MAQ_APROX = {X 520, Y 0, Z 345, A 0, B 0, C 0}
+  DECL E6POS MAQ = {X 650, Y 0, Z 345, A 0, B 0, C 0}
+  DECL E6POS ENT_APROX = {X 260, Y 450, Z 348, A 60, B 0, C 0}
+  DECL E6POS ENTREGA = {X 325, Y 563, Z 348, A 60, B 0, C 0}
+ENDDAT
