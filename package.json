@@ -1,6 +1,6 @@
 {
   "name": "korum",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Korum — laboratório virtual de robótica industrial: simulador 3D de robô de 6 eixos, editor e interpretador KRL, cursos, exercícios e Professor com IA.",
   "main": "main.js",
   "scripts": {

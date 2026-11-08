@@ -113,6 +113,7 @@ function showPane(p) {
   if (p === "ia") renderChat();
   if (p === "config") renderConfig();
   if (p === "inicio") renderTour();
+  if (p === "traj") trRender(); else if (typeof setMarking === "function" && trMarking) setMarking(false);
 }
 document.querySelectorAll("#nav button[data-p]").forEach(b => b.onclick = () => showPane(b.dataset.p));
 
@@ -169,6 +170,7 @@ function openProject(id) {
   $("projName").value = p.name; S.errLine = null; S.curLine = null; S.warnLines.clear();
   setFile("src"); updateNames(); applyScene(p.scene); resetCell(true); previewPoints();
   S.exTargets = p.exercise ? (EXERCISES.find(x => x.id === p.exercise) || {}).alvos || [] : []; showTargets();
+  trSel = -1; trDraw(); if (S.pane === "traj") trRender();
   markDirty();
 }
 $("projName").onchange = () => { const p = cur(); if (p) { p.name = $("projName").value.trim() || "Sem nome"; markDirty(); } };
@@ -358,6 +360,7 @@ function pointsFromScope(scope) {
   const out = [], baseM = RL.frameToMat(S.base);
   for (const [k, v] of Object.entries(scope)) {
     if (!v || typeof v !== "object" || k.startsWith("__") || k === "HOME" || k === "XHOME") continue;
+    if (cur() && (cur().trajeto || []).length && /^T\d+(_APROX)?$/.test(k)) continue; // já desenhados pela aba Trajeto
     let M = null;
     if (["E6POS", "POS", "FRAME"].includes(v.__t) && ["X", "Y", "Z"].every(c => typeof v[c] === "number")) M = RL.mul(baseM, RL.frameToMat(v));
     else if (["E6AXIS", "AXIS"].includes(v.__t) && ["A1", "A2", "A3", "A4", "A5", "A6"].every(c => typeof v[c] === "number")) M = RL.mul(RL.fk(["A1", "A2", "A3", "A4", "A5", "A6"].map(c => v[c])).F6, RL.frameToMat(S.tool));
@@ -979,6 +982,126 @@ $("bSceneApply").onclick = () => {
   p.scene = clone(sceneDraft); applyScene(p.scene); resetCell(true); markDirty(); log("ok", `Cenário aplicado: ${p.scene.objetos.length} objeto(s), ${p.scene.pecas.length} peça(s).`);
 };
 
+// ======================= TRAJETO POR PONTOS (marcação com o mouse) =======================
+const TRC = { pegar: 0x3f86d6, soltar: 0x43c37a, passar: 0xf2b33d };
+const TRN = { pegar: "Pegar", soltar: "Soltar", passar: "Passar por" };
+let trMarking = false, trSel = -1;
+const trGroup = new THREE.Group(); root.add(trGroup);
+const ray = new THREE.Raycaster();
+function trOpts() { const p = cur(); p.trOpt = p.trOpt || { aprox: 150, vel: 0.4, rep: 1, home: true }; return p.trOpt; }
+function topAt(x, y) { let z = 0; for (const o of cur().scene.objetos) if (Math.abs(x - o.x) < o.w / 2 && Math.abs(y - o.y) < o.d / 2) z = Math.max(z, o.h); return z; }
+const r1 = v => Math.round(v * 10) / 10;
+function setMarking(on) { trMarking = on; $("trMark").classList.toggle("on", on); $("trMark").textContent = on ? "🖱 Marcar pontos: LIGADO (clique no 3D)" : "🖱 Marcar pontos: desligado"; view.classList.toggle("marking", on); }
+$("trMark").onclick = () => setMarking(!trMarking);
+let trDown = null;
+renderer.domElement.addEventListener("pointerdown", e => { trDown = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener("pointerup", e => {
+  if (!trMarking || !trDown || S.running) return;
+  if (Math.hypot(e.clientX - trDown[0], e.clientY - trDown[1]) > 5) return; // foi um arraste de câmera
+  trPick(e);
+});
+function trPick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera);
+  const free = parts.filter(q => q.parent === root), meshes = [];
+  cellGroup.traverse(o => { if (o.isMesh) meshes.push(o); });
+  const hit = ray.intersectObjects([...free, ...meshes, floor], false)[0]; if (!hit) return;
+  const w = root.worldToLocal(hit.point.clone()), p = cur(); if (!p.trajeto) p.trajeto = [];
+  const T = p.trajeto, sel = $("trNext").value, pend = T.filter(t => t.acao === "pegar").length > T.filter(t => t.acao === "soltar").length;
+  const lastA = (T.slice().reverse().find(t => t.acao === "pegar") || {}).a || 0;
+  let pt;
+  if (free.includes(hit.object)) {
+    const q = hit.object.position, d = pdim(hit.object), yaw = Math.round(hit.object.rotation.z * RL.R2D);
+    const ac = sel === "auto" ? (pend ? "soltar" : "pegar") : sel;
+    if (ac === "pegar") pt = { x: q.x, y: q.y, z: q.z, a: yaw, acao: "pegar" };
+    else if (ac === "soltar") pt = { x: q.x, y: q.y, z: q.z + d.h / 2 + 30, a: lastA, acao: "soltar" }; // empilhar em cima
+    else pt = { x: q.x, y: q.y, z: q.z + d.h / 2 + 200, a: lastA, acao: "passar" };
+  } else {
+    const top = topAt(w.x, w.y), ac = sel === "auto" ? (pend ? "soltar" : "passar") : sel;
+    pt = { x: w.x, y: w.y, z: ac === "passar" ? top + 225 : top + 30, a: ac === "pegar" ? 0 : lastA, acao: ac };
+  }
+  pt.x = r1(pt.x); pt.y = r1(pt.y); pt.z = r1(pt.z);
+  T.push(pt); trSel = T.length - 1; trChanged();
+  log("info", `Ponto T${T.length} (${TRN[pt.acao]}) marcado em X ${pt.x} Y ${pt.y} Z ${pt.z}.`);
+}
+function trCheck(t) {
+  const o = trOpts(), tool = RL.frameToMat(RL.DEFAULT_TOOL);
+  const chk = z => { const r = RL.ik(RL.mul(RL.frameToMat({ X: t.x, Y: t.y, Z: z, A: t.a || 0, B: 90, C: 0 }), RL.inv(tool)), RL.HOME); if (!r.ok) return r.reason; const c = RL.checkCollision(r.j, tool); return c ? `colisão de ${c.part} com ${c.obstacle.nome}` : null; };
+  const e1 = chk(t.z); if (e1) return e1;
+  if (t.acao !== "passar") { const e2 = chk(t.z + o.aprox); if (e2) return "aproximação: " + e2; }
+  return null;
+}
+const GEN_MARK = "; Programa gerado pela aba Trajeto";
+function trGenerate() {
+  const p = cur(), o = trOpts(), T = p.trajeto || []; if (!T.length) return;
+  if (!p.src.includes(GEN_MARK)) saveVersion("Antes de gerar pelo Trajeto", true);
+  const n = p.src.includes(GEN_MARK) ? progName(p.src) : "trajeto";
+  const pos = (t, dz) => `{X ${r1(t.x)}, Y ${r1(t.y)}, Z ${r1(t.z + dz)}, A ${r1(t.a || 0)}, B 90, C 0}`;
+  const rep = Math.max(1, Math.round(+o.rep || 1)), ind = rep > 1 ? "    " : "  ", L = [], D = [];
+  L.push(`DEF ${n}()`, `  ${GEN_MARK} (marcação de pontos com o mouse).`, "  ; Para mudar o trajeto, edite os pontos na aba Trajeto.");
+  if (rep > 1) L.push("  DECL INT ciclo");
+  L.push("  INI", `  $VEL.CP = ${Math.max(0.01, Math.min(2, +o.vel || 0.4))}`);
+  if (o.home) L.push("  PTP HOME");
+  L.push("  $OUT[1] = FALSE                ; garra aberta no início");
+  if (rep > 1) L.push(`  FOR ciclo = 1 TO ${rep}`);
+  T.forEach((t, i) => {
+    const nm = "T" + (i + 1);
+    D.push(`  DECL E6POS ${nm} = ${pos(t, 0)}`);
+    if (t.acao === "passar") { L.push("", `${ind}; ${i + 1}. passar por`, `${ind}PTP ${nm}`); return; }
+    D.push(`  DECL E6POS ${nm}_APROX = ${pos(t, +o.aprox || 150)}`);
+    L.push("", `${ind}; ${i + 1}. ${t.acao}`, `${ind}PTP ${nm}_APROX`, `${ind}LIN ${nm}`, `${ind}$OUT[1] = ${t.acao === "pegar" ? "TRUE " : "FALSE"}           ; ${t.acao === "pegar" ? "fecha" : "abre"} a garra`, `${ind}WAIT SEC 0.3`, `${ind}LIN ${nm}_APROX`);
+  });
+  if (rep > 1) L.push("  ENDFOR");
+  L.push("");
+  if (o.home) L.push("  PTP HOME");
+  L.push("END");
+  p.src = L.join("\n"); p.dat = `DEFDAT ${n}\n  ; pontos marcados com o mouse (aba Trajeto)\n${D.join("\n")}\nENDDAT`;
+  p.blocks = null; setFile(S.file); updateNames(); markDirty();
+}
+function trChanged() { trGenerate(); trRender(); trDraw(); previewPoints(); }
+function trRender() {
+  const p = cur(); if (!p) return; const T = p.trajeto || [], o = trOpts();
+  $("trajN").textContent = `${T.length} ponto(s)`;
+  $("trAprox").value = o.aprox; $("trVel").value = o.vel; $("trRep").value = o.rep; $("trHome").checked = !!o.home;
+  if (!T.length) { $("trList").innerHTML = `<p class="note">Nenhum ponto ainda. Ligue "Marcar pontos" e clique numa peça no 3D (o robô vai pegá-la) e depois na esteira ou na mesa (ele vai soltar ali). Pode marcar quantos pontos quiser.</p>`; return; }
+  $("trList").innerHTML = T.map((t, i) => { const er = trCheck(t);
+    return `<div class="trp ${i === trSel ? "sel" : ""}" data-ti="${i}"><span class="num" style="background:#${TRC[t.acao].toString(16).padStart(6, "0")}">${i + 1}</span>
+      <select data-tf="acao">${Object.keys(TRN).map(k => `<option value="${k}" ${k === t.acao ? "selected" : ""}>${TRN[k]}</option>`).join("")}</select>
+      <span class="xyz">${["x", "y", "z", "a"].map(k => `<span class="pr"><label>${k === "a" ? "giro°" : k.toUpperCase()}</label><input type="number" data-tf="${k}" value="${r1(t[k] || 0)}" step="${k === "a" ? 90 : 5}"></span>`).join("")}</span>
+      <span class="bt"><button data-tm="-1" title="Subir na ordem">↑</button><button data-tm="1" title="Descer na ordem">↓</button><button data-tx class="danger" title="Excluir ponto">✕</button></span>
+      <span class="st" style="color:${er ? "var(--err)" : "var(--ok)"}">${er ? "⚠ " + esc(er) : "✓ alcançável"}</span></div>`; }).join("") +
+    `<p class="note">Clique num ponto da lista para destacá-lo no 3D. Os números podem ser ajustados à mão (mm e graus).</p>`;
+}
+$("trList").addEventListener("change", e => {
+  const f = e.target.dataset.tf, row = e.target.closest("[data-ti]"); if (!f || !row) return;
+  const t = cur().trajeto[+row.dataset.ti]; t[f] = f === "acao" ? e.target.value : +e.target.value; trChanged();
+});
+$("trList").addEventListener("click", e => {
+  const row = e.target.closest("[data-ti]"); if (!row) return; const i = +row.dataset.ti, T = cur().trajeto;
+  if (e.target.dataset.tm !== undefined) { const j = i + +e.target.dataset.tm; if (j >= 0 && j < T.length) { [T[i], T[j]] = [T[j], T[i]]; trSel = j; trChanged(); } return; }
+  if (e.target.dataset.tx !== undefined) { T.splice(i, 1); trSel = -1; if (T.length) trChanged(); else { trRender(); trDraw(); } log("info", `Ponto T${i + 1} excluído; os seguintes foram renumerados.`); return; }
+  if (e.target.tagName !== "INPUT" && e.target.tagName !== "SELECT") { trSel = i; trRender(); trDraw(); }
+});
+[["trAprox", "aprox"], ["trVel", "vel"], ["trRep", "rep"]].forEach(([id, k]) => $(id).onchange = () => { trOpts()[k] = +$(id).value; if ((cur().trajeto || []).length) trChanged(); });
+$("trHome").onchange = () => { trOpts().home = $("trHome").checked; if ((cur().trajeto || []).length) trChanged(); };
+$("trRun").onclick = () => { if (S.running) return; if (!(cur().trajeto || []).length) return toast("Marque pelo menos um ponto"); resetCell(true); runProgram(false); };
+$("trCode").onclick = () => { showPane("prog"); setFile("src"); };
+$("trClear").onclick = async () => { const T = cur().trajeto || []; if (!T.length) return; const ok = await ask("Apagar pontos", `Apagar os ${T.length} pontos do trajeto? O programa atual continua no editor e no histórico de versões.`, [{ label: "Cancelar", value: false }, { label: "Apagar", value: true, danger: true }]); if (ok) { cur().trajeto = []; trSel = -1; trRender(); trDraw(); } };
+function trDraw() {
+  clearGroup(trGroup); const p = cur(); const T = (p && p.trajeto) || []; if (!T.length) return; const o = trOpts();
+  const path = [];
+  T.forEach((t, i) => {
+    const c = TRC[t.acao], big = i === trSel;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(big ? 18 : 13, 20, 14), new THREE.MeshBasicMaterial({ color: c })); m.position.set(t.x, t.y, t.z); trGroup.add(m);
+    if (big) { const ring = new THREE.Mesh(new THREE.TorusGeometry(30, 3, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); ring.position.set(t.x, t.y, t.z); trGroup.add(ring); }
+    const up = t.acao === "passar" ? t.z : t.z + (+o.aprox || 150);
+    if (t.acao !== "passar") { const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(t.x, t.y, t.z), new THREE.Vector3(t.x, t.y, up)]); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: c, dashSize: 12, gapSize: 8 })); l.computeLineDistances(); trGroup.add(l); }
+    path.push(new THREE.Vector3(t.x, t.y, up));
+    label(trGroup, `${i + 1} · ${TRN[t.acao]}`, [t.x, t.y, up + 30], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
+  });
+  if (path.length > 1) { const g = new THREE.BufferGeometry().setFromPoints(path); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 20, gapSize: 12, transparent: true, opacity: 0.7 })); l.computeLineDistances(); trGroup.add(l); }
+}
+
 // ======================= ANÁLISE / ENGENHARIA REVERSA =======================
 function renderRevInfo() {
   const p = cur(); $("revOrig").textContent = p && p.original ? `Original guardado: ${(p.original.files || []).join(" + ") || "importação"} em ${dt(p.original.date)}.` : "Este projeto não tem original importado: a comparação usa a primeira versão do histórico.";
@@ -1234,5 +1357,5 @@ document.querySelectorAll(".rz").forEach(h => h.addEventListener("pointerdown", 
   log("info", `Korum ${APP_VERSION} pronto. ${store.projects.length} projeto(s) na biblioteca. F5 executa, F10 executa passo a passo, Ctrl+S salva uma versão.`);
   initKCP({ S, store, cur, RL, $, esc, hlLine, log, toast, ask, askText, openProject, newProject, runProgram, setJoints, quickMove, setOut, resetCell, curPos, tcpWorld,
     parts: () => parts.map(partPos), partsRaw: () => parts, progName, markDirty, persist, saveVersion, previewPoints, makeZip, platform, stamp, safe, showPane, setFile, updateNames, check, EXAMPLES, SCENES, applyScene, openExample, flashObstacle, showHelp: () => $("mHelp").classList.add("on"), APP_VERSION });
-  window.__korum = { S, store, runProgram, analyze, evaluate: id => evaluate(EXERCISES.find(x => x.id === id)), startExercise: id => startExercise(EXERCISES.find(x => x.id === id), true), cur, showPane, parts: () => parts.map(partPos), sendChat, krlToBlocks, blocksToKrl, openExample };
+  window.__korum = { scr: (x, y, z) => { const v = new THREE.Vector3(x, y, z); root.localToWorld(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, S, store, runProgram, analyze, evaluate: id => evaluate(EXERCISES.find(x => x.id === id)), startExercise: id => startExercise(EXERCISES.find(x => x.id === id), true), cur, showPane, parts: () => parts.map(partPos), sendChat, krlToBlocks, blocksToKrl, openExample };
 })();

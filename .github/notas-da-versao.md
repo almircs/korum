@@ -11,7 +11,16 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.4.0 — Modo Iniciante e Profissional
+## Novidades da versão 1.5.0 — Trajeto por pontos
+- Nova aba **Trajeto** (nos modos Iniciante e Profissional): ligue **Marcar pontos** e clique no simulador 3D
+  - clique numa **peça** = pegar; clique na **esteira, mesa, palete ou chão** = soltar (ou passar por, se a garra estiver vazia)
+  - o programa KRL é escrito sozinho: aproximação por cima (PTP), descida e subida em linha reta (LIN), garra abrindo e fechando
+- Lista de pontos para **trocar a ação, ajustar X/Y/Z e giro, mudar a ordem e excluir**; cada ponto mostra se é alcançável ou se haveria colisão
+- Trajeto desenhado no 3D (pontos numerados, linhas de aproximação e caminho)
+- Opções: altura de aproximação, velocidade, repetir o ciclo e começar/terminar em HOME
+- Botão **Reiniciar célula e executar**
+
+## Versão 1.4.0 — Modo Iniciante e Profissional
 - Ao abrir o Korum pela primeira vez, você escolhe **Iniciante** ou **Profissional**. Dá para trocar a qualquer momento no botão no topo da tela
 - **Iniciante:** tela simplificada (sem Projetos, Cenário, Análise e Painel; jog só em X, Y e Z; "Velocidade" no lugar de "Override"), exemplos selecionados e **dicas em linguagem simples** no console quando dá erro
 - Roteiro guiado **Primeiros passos** com 10 missões conferidas sozinhas: girar a vista, mover um eixo, HOME, abrir e executar um programa, mudar um ponto, ensinar um ponto, programar com blocos, pegar uma peça e fazer o primeiro exercício. A missão atual destaca na tela onde clicar

@@ -273,6 +273,15 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 .mission .ok{color:var(--ok);font-weight:600}
 .hilite{outline:3px solid var(--acc)!important;outline-offset:3px;border-radius:6px;animation:hil 1s infinite}
 @keyframes hil{50%{outline-color:transparent}}
+
+#view.marking canvas{cursor:crosshair}
+#trMark.on{background:var(--ok);border-color:var(--ok);color:#06210f}
+.trp{display:grid;grid-template-columns:26px 92px 1fr auto;gap:6px;align-items:center;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 8px;margin-bottom:6px}
+.trp.sel{border-color:var(--acc)}
+.trp .num{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font:600 12px var(--mono);color:#fff}
+.trp .xyz{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px} .trp .pr{display:flex;align-items:center;gap:4px} .trp .xyz input{width:100%;min-width:0;font:12px var(--mono);padding:2px 4px} .trp .xyz label{font:10px var(--mono);color:var(--mut);width:30px;text-align:right}
+.trp .bt{display:flex;gap:2px} .trp .bt button{padding:1px 6px;font-size:11px}
+.trp .st{grid-column:2/-1;font-size:11.5px}
 </style>
 </head>
 <body>
@@ -304,6 +313,7 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
     <button data-p="projetos" class="pro-only" title="Biblioteca de projetos, versões e backup"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projetos</button>
     <button data-p="cursos" title="Trilha de aprendizado"><svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10v5c3 3 9 3 12 0v-5"/></svg>Cursos</button>
     <button data-p="exerc" title="Exercícios com avaliação"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>Exercícios</button>
+    <button data-p="traj" title="Marcar pontos com o mouse e gerar o programa"><svg viewBox="0 0 24 24"><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="17" cy="17" r="2.2"/><path d="M6.8 16.6 16.8 7.4M7.2 18.2h7.6" stroke-dasharray="2 2.4"/></svg>Trajeto</button>
     <button data-p="cena" class="pro-only" title="Cenário da célula"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12M21 7l-9 5-9-5"/></svg>Cenário</button>
     <button data-p="analise" class="pro-only" title="Análise e engenharia reversa"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>Análise</button>
     <button data-p="kcp" class="pro-only" title="Modo painel do robô (teach pendant)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="15" rx="2"/><rect x="6" y="7" width="9" height="7" rx="1"/><path d="M18 8v1M18 11v1M18 14v1M7 17h8"/></svg>Painel</button>
@@ -345,6 +355,22 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
     <div class="pane" id="p-cursos"><div class="ph">Trilha de aprendizado<div class="sp"></div><span id="courseProg" class="badge"></span></div><div class="scroll" id="courses"></div></div>
     <!-- EXERCÍCIOS -->
     <div class="pane" id="p-exerc"><div class="ph">Exercícios práticos<div class="sp"></div><span id="exProg" class="badge"></span></div><div class="scroll" id="exercises"></div></div>
+    <!-- TRAJETO -->
+    <div class="pane" id="p-traj"><div class="ph">Trajeto por pontos<div class="sp"></div><span class="badge" id="trajN"></span></div>
+      <div class="scroll">
+        <p class="note" style="margin-top:0">Ligue <b>Marcar pontos</b> e clique no simulador 3D: clicando numa <b>peça</b> o robô vai pegá-la; clicando na <b>esteira, mesa, palete ou chão</b> ele vai soltar ali. O programa KRL é escrito sozinho a cada ponto.</p>
+        <div class="row"><button class="pri" id="trMark">🖱 Marcar pontos: desligado</button></div>
+        <div class="row"><label>Próximo ponto</label><select id="trNext"><option value="auto">Automático (peça = pegar, superfície = soltar)</option><option value="pegar">Pegar</option><option value="soltar">Soltar</option><option value="passar">Passar por (desvio)</option></select></div>
+        <div id="trList"></div>
+        <h3>Opções do programa</h3>
+        <div class="row"><label style="width:150px">Altura de aproximação</label><input type="number" id="trAprox" value="150" style="width:80px"> <span class="note" style="margin:0">mm acima de cada ponto</span></div>
+        <div class="row"><label style="width:150px">Velocidade linear</label><input type="number" id="trVel" value="0.4" step="0.1" style="width:80px"> <span class="note" style="margin:0">m/s</span></div>
+        <div class="row"><label style="width:150px">Repetir o ciclo</label><input type="number" id="trRep" value="1" min="1" style="width:80px"> <span class="note" style="margin:0">vezes</span></div>
+        <div class="row"><label><input type="checkbox" id="trHome" checked> Começar e terminar em HOME</label></div>
+        <div class="row"><button id="trRun" class="pri">▶ Reiniciar célula e executar</button><button id="trCode">Ver o programa gerado</button><button id="trClear" class="danger">Apagar todos os pontos</button></div>
+        <p class="note">Pegar: aproxima por cima, desce em linha reta (LIN), fecha a garra e sobe. Soltar: o mesmo, abrindo a garra. Passar por: ponto de desvio no caminho (PTP). Os pontos ficam no .dat como T1, T2… e as aproximações como T1_APROX…</p>
+      </div>
+    </div>
     <!-- CENÁRIO -->
     <div class="pane" id="p-cena"><div class="ph">Cenário da célula<div class="sp"></div><button class="sm pri" id="bSceneApply">Aplicar</button></div>
       <div class="scroll">
@@ -459,6 +485,10 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 <tr><td>BAS(#INITMOV / #PTP_PARAMS / #CP_PARAMS)</td><td>Compatibilidade com formulários inline (FOLDs).</td></tr>
 <tr><td>SIN COS TAN ACOS ATAN2 SQRT ABS</td><td>Funções (graus).</td></tr>
 </table>
+<h3>Trajeto por pontos (aba Trajeto)</h3>
+<ul><li>Ligue <b>Marcar pontos</b> e clique no 3D: numa peça = <b>Pegar</b>; numa superfície (esteira, mesa, palete, chão) = <b>Soltar</b> (ou <b>Passar por</b> se não houver peça na garra). Clicar em cima de outra peça com "Soltar" empilha.</li>
+<li>Cada ponto vira T1, T2… no .dat (com T1_APROX acima) e o programa KRL é reescrito a cada mudança: aproximação por PTP, descida e subida em LIN, garra com $OUT[1].</li>
+<li>Na lista: trocar a ação, ajustar X/Y/Z/giro, mudar a ordem (↑ ↓) e excluir (✕). Cada ponto mostra se é alcançável ou se haveria colisão.</li></ul>
 <h3>Esteira motorizada (cenário "Linha de pacotes")</h3>
 <ul><li><code>$OUT[6]</code> liga o motor da esteira de entrada; os pacotes (100 × 50 × 50 mm) entram sozinhos, andam e se acumulam no batente.</li>
 <li><code>$IN[1]</code> é o sensor do batente: liga sozinho quando há pacote parado no fim da esteira (a luz verde acende).</li>
