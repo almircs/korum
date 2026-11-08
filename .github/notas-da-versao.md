@@ -11,7 +11,18 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.7.0 — Posicionar pontos ficou mais fácil
+## Novidades da versão 1.8.0 — Garra com abertura e força ajustáveis
+- Novo bloco **Garra** no painel da direita: **Abertura** (20–120 mm) e **Força** (5–200 N) reguláveis à mão, botões **Abrir** e **Fechar** e informação da peça mais próxima (tamanho, peso e força necessária)
+- A simulação respeita os ajustes:
+  - peça mais larga que a abertura não é pega (os dedos batem na peça)
+  - força abaixo da necessária para o peso: a peça escorrega (peça de 50 mm = 0,5 kg → 13 N; pacote = 1,2 kg → 30 N)
+  - reduzir a força com a peça presa faz ela cair
+  - acima de 120 N no pacote aparece aviso de que pode amassar
+- No programa KRL: `$GARRA_ABERTURA = 80` e `$GARRA_FORCA = 50` (variáveis do Korum que simulam uma garra elétrica)
+- IHM do Modo Painel (Ctrl+F12 → garra): força ±10 N e abertura ±10 mm
+- Os dedos da garra abrem conforme a abertura ajustada e fecham na largura da peça
+
+## Versão 1.7.0 — Posicionar pontos ficou mais fácil
 - **O ponto segue o mouse sobre a superfície:** ao arrastar, ele vai exatamente para onde o cursor aponta na esteira, mesa, palete, peça ou chão (antes andava num plano invisível na altura do ponto). Segure Ctrl para o modo de precisão
 - **Prévia antes de clicar:** no modo Marcar pontos, um alvo colorido segue o mouse e diz o que o clique vai fazer ("clique: soltar · X 300 Y −525"), com a peça-fantasma no lugar
 - **Fantasma da peça:** cada ponto de soltar mostra uma caixa transparente exatamente onde a peça vai ficar (já girada); o ponto de pegar contorna em amarelo a peça que será pega

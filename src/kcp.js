@@ -236,6 +236,8 @@ export function initKCP(api) {
     1: { t: "Funções manuais garra", rows: [
       { l: ["Abrir garra", () => api.setOut(1, false)], r: ["Fechar garra", () => api.setOut(1, true)] },
       { l: ["Girar garra −90°", () => { const j = S.joints.slice(); j[5] -= 90; return j[5] < RL.LIMITS[5][0] ? setH("H050 Limite A6", true) : moveJ(j, "Girar garra"); }], r: ["Girar garra +90°", () => { const j = S.joints.slice(); j[5] += 90; return j[5] > RL.LIMITS[5][1] ? setH("H050 Limite A6", true) : moveJ(j, "Girar garra"); }] },
+      { l: ["Força da garra −10 N", () => api.setGrip({ forca: api.GR.forca - 10 })], r: ["Força da garra +10 N", () => api.setGrip({ forca: api.GR.forca + 10 })] },
+      { l: ["Abertura da garra −10 mm", () => api.setGrip({ abertura: api.GR.abertura - 10 })], r: ["Abertura da garra +10 mm", () => api.setGrip({ abertura: api.GR.abertura + 10 })] },
       { l: ["Garra para baixo 50 mm", () => { const p = api.curPos(); p.Z -= 50; return moveTCP(p, "Garra para baixo"); }], r: ["Garra para cima 50 mm", () => { const p = api.curPos(); p.Z += 50; return moveTCP(p, "Garra para cima"); }] },
     ] },
     2: { t: "Funções manuais robô", rows: [

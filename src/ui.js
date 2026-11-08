@@ -250,7 +250,7 @@ mesh(box(45, 74, 54), mat.black, tool, [22.5, 0, 0]);
 const fA = mesh(box(85, 12, 30), mat.steel, tool, [87.5, 51, 0]), fB = mesh(box(85, 12, 30), mat.steel, tool, [87.5, -51, 0]);
 const tcpMark = new THREE.Group(); tcpMark.matrixAutoUpdate = false; flange.add(tcpMark);
 const tcpAxes = new THREE.AxesHelper(70); tcpAxes.material.depthTest = false; tcpAxes.renderOrder = 5; tcpMark.add(tcpAxes);
-const grip = { target: 51, cur: 51 };
+const grip = { target: 56, cur: 56 };
 const axLabels = [[g1, [0, 0, 230]], [g2, [0, -120, 0]], [g3, [0, -105, 0]], [g4, [150, 0, 60]], [g5, [0, -70, 0]], [g6, [50, 0, 50]]].map(([g, p], i) => label(g, "A" + (i + 1), p, "lbl", null, "eixo"));
 const baseAxes = new THREE.Group(); root.add(baseAxes);
 function arrow(dir, color, txt) {
@@ -438,31 +438,75 @@ for (let n = 1; n <= 8; n++) {
   const l = document.createElement("div"); l.className = "lamp"; l.innerHTML = `<i></i>${n}`; $("outs").appendChild(l);
 }
 function setOut(n, v) { S.outs[n] = v; if (n <= 8) $("outs").children[n - 1].classList.toggle("on", v); if (n === 1) gripper(v); }
+// ---- garra ajustável: abertura (mm) e força (N) ----
+const GR = { abertura: 100, forca: 60 };
+const MU = 0.4, SEG = 2; // atrito dedo/peça e fator de segurança
+const massOf = p => p.userData.size && p.userData.size[0] === 100 ? 1.2 : 0.5; // pacote 1,2 kg · peça 0,5 kg
+const forceNeeded = p => Math.ceil(massOf(p) * 9.81 * SEG / (2 * MU));
+const openY = () => GR.abertura / 2 + 6;
+function widthAcross(p) { // largura da peça na direção em que os dedos fecham (eixo Y da ferramenta)
+  const M = tcpWorld(), uy = [M[1], M[5], M[9]], d = p.userData.size || [50, 50, 50];
+  const a = new THREE.Euler().setFromQuaternion(p.getWorldQuaternion(new THREE.Quaternion()).premultiply(root.getWorldQuaternion(new THREE.Quaternion()).invert()), "ZYX").z;
+  const ax = [Math.cos(a), Math.sin(a)], ay = [-Math.sin(a), Math.cos(a)];
+  return Math.abs(uy[0] * ax[0] + uy[1] * ax[1]) * d[0] + Math.abs(uy[0] * ay[0] + uy[1] * ay[1]) * d[1] + Math.abs(uy[2]) * d[2];
+}
+function setGrip(o, quiet) {
+  if (o.abertura !== undefined) GR.abertura = Math.max(20, Math.min(120, Math.round(o.abertura)));
+  if (o.forca !== undefined) GR.forca = Math.max(5, Math.min(200, Math.round(o.forca)));
+  $("gAb").value = GR.abertura; $("gAbv").textContent = GR.abertura + " mm"; $("gFo").value = GR.forca; $("gFov").textContent = GR.forca + " N";
+  if (!gripClosed) grip.target = openY();
+  if (held && GR.forca < forceNeeded(held)) { log("warn", `Força reduzida para ${GR.forca} N: a peça precisa de ${forceNeeded(held)} N e escorregou da garra.`); dropHeld(); }
+  if (!quiet) { store.settings.garra = { ...GR }; markDirty(); }
+  gripInfo();
+}
+function dropHeld() {
+  const p = held; if (!p) return; root.attach(p); held = null;
+  const yaw = new THREE.Euler().setFromQuaternion(p.quaternion, "ZYX").z; p.rotation.set(0, 0, Math.round(yaw / (Math.PI / 2)) * (Math.PI / 2));
+  const z = surfaceBelow(p.position.x, p.position.y, p) + pdim(p).h / 2, drop = p.position.z - z; p.position.z = z;
+  const on = (cur().scene.objetos.find(o => Math.abs(p.position.x - o.x) < o.w / 2 && Math.abs(p.position.y - o.y) < o.d / 2) || { nome: "o piso" }).nome;
+  log(drop > 15 ? "warn" : "ok", drop > 15 ? `Peça solta a ${Math.round(drop)} mm de altura — caiu sobre ${on}.` : `Peça depositada: ${on}.`);
+}
 function gripper(close) {
   if (close === gripClosed) return; gripClosed = close;
   if (close) {
     const M = tcpWorld(); let best = null, bd = 1e9;
     for (const p of parts) { const q = partPos(p), d = Math.hypot(M[3] - q.x, M[7] - q.y, M[11] - q.z); if (d < bd) { bd = d; best = p; } }
-    if (best && bd < 30 && Math.abs(S.tool.X - 110) < 1) { tool.attach(best); held = best; grip.target = 31; S.events.push({ t: "grip", ok: true }); log("ok", "Garra fechada: peça presa."); }
-    else { grip.target = 9; S.events.push({ t: "grip", ok: false }); log("info", best ? `Garra fechada vazia (peça mais próxima a ${Math.round(bd)} mm do TCP).` : "Garra fechada vazia."); }
+    const garra = Math.abs(S.tool.X - 110) < 1;
+    if (best && bd < 30 && garra) {
+      const w = widthAcross(best), need = forceNeeded(best);
+      if (w > GR.abertura - 2) { grip.target = 9; S.events.push({ t: "grip", ok: false }); log("err", `A peça tem ${Math.round(w)} mm entre os dedos e a garra abre só ${GR.abertura} mm: os dedos batem na peça. Aumente a abertura.`); }
+      else if (GR.forca < need) { grip.target = 9; S.events.push({ t: "grip", ok: false }); log("warn", `Força de ${GR.forca} N insuficiente: a peça (${massOf(best).toFixed(1).replace(".", ",")} kg) precisa de pelo menos ${need} N. A garra fechou, mas a peça escorregou.`); }
+      else {
+        tool.attach(best); held = best; grip.target = w / 2 + 6; S.events.push({ t: "grip", ok: true });
+        log("ok", `Garra fechada: peça presa (${GR.forca} N, mínimo ${need} N).`);
+        if (best.userData.size && best.userData.size[0] === 100 && GR.forca > 120) log("warn", `Força de ${GR.forca} N pode amassar o pacote (recomendado até 120 N).`);
+      }
+    } else { grip.target = 9; S.events.push({ t: "grip", ok: false }); log("info", best ? `Garra fechada vazia (peça mais próxima a ${Math.round(bd)} mm do TCP).` : "Garra fechada vazia."); }
   } else {
-    grip.target = 51;
-    if (held) {
-      const p = held; root.attach(p); held = null;
-      const yaw = new THREE.Euler().setFromQuaternion(p.quaternion, "ZYX").z; p.rotation.set(0, 0, Math.round(yaw / (Math.PI / 2)) * (Math.PI / 2));
-      const z = surfaceBelow(p.position.x, p.position.y, p) + pdim(p).h / 2, drop = p.position.z - z; p.position.z = z;
-      const on = (cur().scene.objetos.find(o => Math.abs(p.position.x - o.x) < o.w / 2 && Math.abs(p.position.y - o.y) < o.d / 2) || { nome: "o piso" }).nome;
-      log(drop > 15 ? "warn" : "ok", drop > 15 ? `Peça solta a ${Math.round(drop)} mm de altura — caiu sobre ${on}.` : `Peça depositada: ${on}.`);
-    }
+    grip.target = openY();
+    if (held) dropHeld();
   }
+  gripInfo();
 }
+function gripInfo() {
+  const el = $("gInfo"); if (!el) return;
+  const M = tcpWorld(); let best = null, bd = 1e9; for (const p of parts) if (p !== held) { const q = partPos(p), d = Math.hypot(M[3] - q.x, M[7] - q.y, M[11] - q.z); if (d < bd) { bd = d; best = p; } }
+  const st = gripClosed ? (held ? `<b style="color:var(--ok)">fechada com peça</b>` : `<b>fechada (vazia)</b>`) : `<b>aberta</b> (${GR.abertura} mm)`;
+  const ref = held || best;
+  el.innerHTML = `Garra ${st}` + (ref ? `<br>${held ? "Peça presa" : "Peça mais próxima"}: ${(ref.userData.size || [50, 50, 50]).join("×")} mm, ${massOf(ref).toFixed(1).replace(".", ",")} kg → precisa de <b>${forceNeeded(ref)} N</b>${GR.forca < forceNeeded(ref) ? ` <span style="color:var(--err)">(força atual insuficiente)</span>` : ""}` : "");
+}
+$("gAb").oninput = () => setGrip({ abertura: +$("gAb").value });
+$("gFo").oninput = () => setGrip({ forca: +$("gFo").value });
+$("gOpen").onclick = () => { if (!S.running) setOut(1, false); };
+$("gClose").onclick = () => { if (!S.running) setOut(1, true); };
+setInterval(() => { if (!S.running) gripInfo(); }, 700);
 function flashObstacle(id) { const ms = obMeshes[id]; if (!ms) return; ms.forEach(m => { m.userData.mat = m.userData.mat || m.material; m.material = mat.hit; }); setTimeout(() => ms.forEach(m => m.material = m.userData.mat), 1800); }
 function resetCell(silent) {
   if (S.running) return; setJoints(RL.HOME, false);
   if (held) { root.attach(held); held = null; }
   parts = parts.filter(p => { if (p.userData.spawned) { p.parent && p.parent.remove(p); return false; } return true; });
   parts.forEach(p => { if (p.parent !== root) root.attach(p); p.position.fromArray(p.userData.home); p.rotation.set(0, 0, 0); }); convAcc = {};
-  gripClosed = false; grip.target = 51; for (let n = 1; n <= 64; n++) if (S.outs[n]) { S.outs[n] = false; if (n <= 8) $("outs").children[n - 1].classList.remove("on"); }
+  gripClosed = false; grip.target = openY(); for (let n = 1; n <= 64; n++) if (S.outs[n]) { S.outs[n] = false; if (n <= 8) $("outs").children[n - 1].classList.remove("on"); }
   setTool(RL.DEFAULT_TOOL); S.base = { X: 0, Y: 0, Z: 0, A: 0, B: 0, C: 0 }; clearTrail(); S.errLine = null; render(); setStatus("idle"); $("ikmsg").textContent = ""; fillGo();
   if (!silent) log("info", "Célula reiniciada: robô em HOME, peças nas posições iniciais.");
 }
@@ -570,6 +614,7 @@ async function runProgram(stepping) {
     status: st => { if (st !== "idle") setStatus(st); },
     getJoints: () => S.joints, getIn: n => !!S.ins[n], output: (n, v) => setOut(n, v),
     getOverride: () => S.pov, setOverride: v => { S.pov = v; $("pov").value = v; $("povv").textContent = v + "%"; },
+    getGrip: () => GR, gripParam: (k, v) => setGrip({ [k]: v }, true),
     frames: (base, toolF) => { S.base = { ...base }; setTool(toolF); previewPoints(); },
     points: scope => showPoints(pointsFromScope(scope)),
     errorLine: loc => { S.errLine = loc; S.curLine = null; if (S.pane === "prog") { render(); gotoLine(loc, false); } },
@@ -1402,7 +1447,7 @@ ${p.dat.slice(0, 6000)}`;
 const SYSTEM = `Você é o Professor de Robótica do Korum, um laboratório virtual de robótica industrial para técnicos e engenheiros brasileiros. Responda sempre em português do Brasil, com linguagem técnica e didática, direto ao ponto.
 Você ensina programação KRL de robôs industriais de 6 eixos, cinemática, singularidades, diagnóstico e boas práticas de segurança.
 O simulador do Korum interpreta este subconjunto de KRL: DEF/END (com parâmetros), DEFDAT/ENDDAT, DECL (INT, REAL, BOOL, E6POS, POS, FRAME, E6AXIS, AXIS, vetores), INI, PTP, LIN, CIRC aux,fim, PTP_REL, LIN_REL (BASE ou #TOOL), IF/ELSE/ENDIF, FOR/ENDFOR, WHILE, REPEAT/UNTIL, LOOP/ENDLOOP, SWITCH/CASE, EXIT, RETURN, WAIT SEC, WAIT FOR, HALT, INTERRUPT DECL/ON/OFF, $IN[n], $OUT[n], $VEL.CP (m/s), $VEL_AXIS[n] (%), $OV_PRO, $BASE, $TOOL, $POS_ACT, $AXIS_ACT, $NULLFRAME, BAS(#INITMOV/#PTP_PARAMS/#CP_PARAMS), SIN COS TAN ACOS ATAN2 SQRT ABS. Aproximações C_PTP/C_DIS são aceitas mas o robô para em cada ponto. SPLINE, TRIGGER, GOTO e DEFFCT não são executados. Em KRL, AND/OR têm prioridade maior que comparações: use parênteses.
-Convenções: mm e graus; X para a frente, Z para cima; A,B,C = rotações Z,Y,X; ferramenta apontando para baixo = B 90. Peças são cubos de 50 mm (centro a 25 mm acima da superfície). Pegar: TCP a menos de 30 mm do centro da peça e $OUT[1] = TRUE.
+Convenções: mm e graus; X para a frente, Z para cima; A,B,C = rotações Z,Y,X; ferramenta apontando para baixo = B 90. Peças são cubos de 50 mm (centro a 25 mm acima da superfície). A garra tem abertura ajustável ($GARRA_ABERTURA, 20–120 mm) e força ($GARRA_FORCA, 5–200 N); a peça de 50 mm pesa 0,5 kg (precisa de 13 N) e o pacote 100×50×50 pesa 1,2 kg (precisa de 30 N); acima de 120 N o pacote pode amassar. Pegar: TCP a menos de 30 mm do centro da peça e $OUT[1] = TRUE.
 Quando escrever um programa, entregue o .src e o .dat em blocos de código separados (\`\`\`krl), com DEF e DEFDAT de mesmo nome, para o aluno carregar e executar no simulador. Use apenas o subconjunto suportado. Verifique alcance (até ~950 mm do ombro, que fica em Z 400) e colisões com o cenário informado.
 Quando houver diferença entre o simulador e controladores reais (KSS, iiQKA.OS2 ou outros), diga claramente. Nunca afirme que a simulação garante segurança em um robô real. Se não tiver certeza sobre um detalhe de um controlador específico, diga que é preciso conferir na documentação oficial do fabricante.`;
 async function sendChat(text) {
@@ -1513,11 +1558,12 @@ document.querySelectorAll(".rz").forEach(h => h.addEventListener("pointerdown", 
   catch (e) { log("err", "Não foi possível ler os dados salvos: " + e.message); }
   if (!store.projects.length) { const e = EXAMPLES[0]; newProject({ name: "Exemplo: " + e.title, cat: e.cat, src: e.src, dat: e.dat, scene: SCENES.pick }); }
   if (!cur()) store.currentId = store.projects[0].id;
+  setGrip(store.settings.garra || {}, true);
   applyTheme(store.settings.theme || "escuro"); setTool(RL.DEFAULT_TOOL); setCam("iso"); resize();
   openProject(store.currentId); renderBackupInfo(); setStatus("idle");
   if (store.settings.nivel) { applyNivel(store.settings.nivel, true); if (store.settings.nivel === "iniciante") showPane("inicio"); } else { applyNivel("profissional", true); $("mNivel").classList.add("on"); }
   log("info", `Korum ${APP_VERSION} pronto. ${store.projects.length} projeto(s) na biblioteca. F5 executa, F10 executa passo a passo, Ctrl+S salva uma versão.`);
-  initKCP({ S, store, cur, RL, $, esc, hlLine, log, toast, ask, askText, openProject, newProject, runProgram, setJoints, quickMove, setOut, resetCell, curPos, tcpWorld,
+  initKCP({ setGrip, GR, S, store, cur, RL, $, esc, hlLine, log, toast, ask, askText, openProject, newProject, runProgram, setJoints, quickMove, setOut, resetCell, curPos, tcpWorld,
     parts: () => parts.map(partPos), partsRaw: () => parts, progName, markDirty, persist, saveVersion, previewPoints, makeZip, platform, stamp, safe, showPane, setFile, updateNames, check, EXAMPLES, SCENES, applyScene, openExample, flashObstacle, showHelp: () => $("mHelp").classList.add("on"), APP_VERSION });
   window.__korum = { scr: (x, y, z) => { const v = new THREE.Vector3(x, y, z); root.localToWorld(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }, S, store, runProgram, analyze, evaluate: id => evaluate(EXERCISES.find(x => x.id === id)), startExercise: id => startExercise(EXERCISES.find(x => x.id === id), true), cur, showPane, parts: () => parts.map(partPos), sendChat, krlToBlocks, blocksToKrl, openExample };
 })();
