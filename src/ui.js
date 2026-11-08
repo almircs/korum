@@ -992,7 +992,7 @@ const ray = new THREE.Raycaster();
 function trOpts() { const p = cur(); p.trOpt = p.trOpt || { aprox: 150, vel: 0.4, rep: 1, home: true }; return p.trOpt; }
 function topAt(x, y) { let z = 0; for (const o of cur().scene.objetos) if (Math.abs(x - o.x) < o.w / 2 && Math.abs(y - o.y) < o.d / 2) z = Math.max(z, o.h); return z; }
 const r1 = v => Math.round(v * 10) / 10;
-function setMarking(on) { trMarking = on; $("trMark").classList.toggle("on", on); $("trMark").textContent = on ? "🖱 Marcar pontos: LIGADO (clique no 3D)" : "🖱 Marcar pontos: desligado"; view.classList.toggle("marking", on); }
+function setMarking(on) { if (!on && typeof hoverG !== "undefined") { hoverG.visible = false; clearGroup(hoverG); } trMarking = on; $("trMark").classList.toggle("on", on); $("trMark").textContent = on ? "🖱 Marcar pontos: LIGADO (clique no 3D)" : "🖱 Marcar pontos: desligado"; view.classList.toggle("marking", on); }
 $("trMark").onclick = () => setMarking(!trMarking);
 let trDown = null;
 renderer.domElement.addEventListener("pointerdown", e => { trDown = [e.clientX, e.clientY]; });
@@ -1090,11 +1090,20 @@ $("trCode").onclick = () => { showPane("prog"); setFile("src"); };
 $("trClear").onclick = async () => { const T = cur().trajeto || []; if (!T.length) return; const ok = await ask("Apagar pontos", `Apagar os ${T.length} pontos do trajeto? O programa atual continua no editor e no histórico de versões.`, [{ label: "Cancelar", value: false }, { label: "Apagar", value: true, danger: true }]); if (ok) { cur().trajeto = []; trSel = -1; trRender(); trDraw(); } };
 // pontos alvo de clique (esferas invisíveis maiores) e desenho com haste até a superfície
 let trPick3D = [];
-function surfUnder(x, y, exclIdx) { // superfície abaixo do ponto (objetos e peças soltas)
+function surfUnder(x, y, excl) { // superfície abaixo do ponto (objetos e peças soltas)
   let z = 0, nome = "o chão";
   for (const o of cur().scene.objetos) if (Math.abs(x - o.x) < o.w / 2 && Math.abs(y - o.y) < o.d / 2 && o.h > z) { z = o.h; nome = o.nome; }
-  for (const q of parts) if (q.parent === root) { const d = pdim(q); if (Math.abs(q.position.x - x) < d.wx / 2 && Math.abs(q.position.y - y) < d.wy / 2 && q.position.z + d.h / 2 > z) { z = q.position.z + d.h / 2; nome = "a peça"; } }
+  for (const q of parts) if (q.parent === root && q !== excl) { const d = pdim(q); if (Math.abs(q.position.x - x) < d.wx / 2 && Math.abs(q.position.y - y) < d.wy / 2 && q.position.z + d.h / 2 > z) { z = q.position.z + d.h / 2; nome = "a peça"; } }
   return { z, nome };
+}
+function partNear(x, y, z, tol) { let b = null, bd = tol; for (const q of parts) if (q.parent === root) { const d = Math.hypot(q.position.x - x, q.position.y - y, (z === null ? 0 : q.position.z - z)); if (d < bd) { bd = d; b = q; } } return b; }
+function heldSize(i) { const T = cur().trajeto; for (let j = i - 1; j >= 0; j--) if (T[j].acao === "pegar") { const q = partNear(T[j].x, T[j].y, T[j].z, 40); return q ? q.userData.size || [50, 50, 50] : [50, 50, 50]; } return [50, 50, 50]; }
+function surfaceHit(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera);
+  const free = parts.filter(q => q.parent === root), meshes = []; cellGroup.traverse(o => { if (o.isMesh) meshes.push(o); });
+  const h = ray.intersectObjects([...free, ...meshes, floor], false)[0]; if (!h) return null;
+  return { w: root.worldToLocal(h.point.clone()), part: free.includes(h.object) ? h.object : null };
 }
 function trDraw() {
   clearGroup(trGroup); trPick3D = []; const p = cur(); const T = (p && p.trajeto) || []; if (!T.length) { trInfo(); return; } const o = trOpts();
@@ -1106,14 +1115,21 @@ function trDraw() {
     const hit = new THREE.Mesh(new THREE.SphereGeometry(34, 10, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(t.x, t.y, t.z); hit.userData.ti = i; trGroup.add(hit); trPick3D.push(hit);
     if (big) { const ring = new THREE.Mesh(new THREE.TorusGeometry(30, 3, 8, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })); ring.position.set(t.x, t.y, t.z); trGroup.add(ring); }
     // haste até a superfície e "sombra" no apoio: ajudam a ver altura e posição
-    const s = surfUnder(t.x, t.y);
+    const s = surfUnder(t.x, t.y, t.acao === "pegar" ? partNear(t.x, t.y, t.z, 35) : null);
     const g0 = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(t.x, t.y, t.z), new THREE.Vector3(t.x, t.y, s.z + 1)]);
     trGroup.add(new THREE.Line(g0, new THREE.LineBasicMaterial({ color: 0xbfc8d4, transparent: true, opacity: 0.8 })));
     const sh = new THREE.Mesh(new THREE.RingGeometry(10, 22, 28), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.6, side: THREE.DoubleSide })); sh.position.set(t.x, t.y, s.z + 1.5); trGroup.add(sh);
+    if (t.acao === "soltar") { // "fantasma" da peça exatamente onde ela vai ficar
+      const sz = heldSize(i), g = new THREE.BoxGeometry(sz[0], sz[1], sz[2]);
+      const gm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0x43c37a, transparent: true, opacity: big ? 0.32 : 0.14, depthWrite: false })); gm.position.set(t.x, t.y, t.z - 5); gm.rotation.z = (t.a || 0) * RL.D2R; trGroup.add(gm);
+      const ed = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0x7dffa8, transparent: true, opacity: big ? 1 : 0.5 })); ed.position.copy(gm.position); ed.rotation.copy(gm.rotation); trGroup.add(ed);
+    }
+    if (t.acao === "pegar") { const pp = partNear(t.x, t.y, t.z, 35); if (pp) { const d = pp.userData.size || [50, 50, 50], g = new THREE.BoxGeometry(d[0] + 10, d[1] + 10, d[2] + 10);
+      const ed = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: big ? 0xffe14d : 0x8fb8e8, depthTest: false })); ed.renderOrder = 21; ed.position.copy(pp.position); ed.rotation.z = pp.rotation.z; trGroup.add(ed); } }
     const up = t.acao === "passar" ? t.z : t.z + (+o.aprox || 150);
     if (t.acao !== "passar") { const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(t.x, t.y, t.z), new THREE.Vector3(t.x, t.y, up)]); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: c, dashSize: 12, gapSize: 8 })); l.computeLineDistances(); trGroup.add(l); }
     path.push(new THREE.Vector3(t.x, t.y, up));
-    label(trGroup, `${i + 1} · ${TRN[t.acao]}${big ? ` · ${Math.round(t.z - s.z)} mm acima` : ""}`, [t.x, t.y, up + 30], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
+    label(trGroup, `${i + 1} · ${{ pegar: "pega aqui", soltar: "solta aqui", passar: "passa aqui" }[t.acao]}${big ? ` · ${Math.round(t.z - s.z)} mm acima` : ""}`, [t.x, t.y, up + 30], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
   });
   if (path.length > 1) { const g = new THREE.BufferGeometry().setFromPoints(path); const l = new THREE.Line(g, new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 20, gapSize: 12, transparent: true, opacity: 0.7 })); l.computeLineDistances(); trGroup.add(l); }
   const ts = T[trSel];
@@ -1133,11 +1149,11 @@ function trDraw() {
 function trInfo() {
   const box = $("trInfo"), p = cur(), t = p && p.trajeto && p.trajeto[trSel];
   if (!t || (S.pane !== "traj" && !trDrag)) { box.style.display = "none"; return; }
-  const s = surfUnder(t.x, t.y), er = trCheck(t), dist = Math.hypot(t.x, t.y);
+  const pk = t.acao === "pegar" ? partNear(t.x, t.y, t.z, 35) : null, s = surfUnder(t.x, t.y, pk), er = trCheck(t), dist = Math.hypot(t.x, t.y);
   box.style.display = "block";
   box.innerHTML = `<b>Ponto ${trSel + 1} · ${TRN[t.acao]}</b>${trDrag ? ` <span class="tm">${trDrag.mode === "z" ? "arrastando ALTURA" : "arrastando POSIÇÃO"}${trDrag.fine ? " · PRECISÃO" : ""}</span>` : ""}<br>
     X <b>${Math.round(t.x)}</b> · Y <b>${Math.round(t.y)}</b> · Z <b>${Math.round(t.z)}</b> mm<br>
-    Altura: <b>${Math.round(t.z - s.z)} mm</b> acima de ${esc(s.nome)}<br>
+    ${t.acao === "pegar" ? (pk ? `Pega a peça pelo centro · ${Math.round(t.z - s.z)} mm acima de ${esc(s.nome === "o chão" ? "o chão" : s.nome)}<br>` : `<span style="color:#ffb066">Sem peça neste ponto: a garra vai fechar vazia</span><br>`) : `Altura: <b>${Math.round(t.z - s.z)} mm</b> acima de ${esc(s.nome)}${t.acao === "soltar" ? " (a peça fica apoiada)" : ""}<br>`}
     Distância da base do robô: <b>${Math.round(dist)} mm</b><br>
     <span style="color:${er ? "#ff7070" : "#5fe08f"}">${er ? "⚠ " + esc(er) : "✓ alcançável"}</span>
     <div class="tk">Arraste para mover · <b>Shift</b> + arrastar: altura · segure <b>Ctrl</b> para precisão (5× mais lento) · setas: ±5 mm · PgUp/PgDn: altura · F: focar no ponto</div>`;
@@ -1176,10 +1192,11 @@ view.addEventListener("pointerdown", e => {
   if (mode === "xy") plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -t.z);
   else { const d = new THREE.Vector3(); camera.getWorldDirection(d); root.updateMatrixWorld(); d.transformDirection(root.matrixWorld.clone().invert()); d.z = 0; if (d.lengthSq() < 1e-6) d.set(1, 0, 0); d.normalize(); plane = new THREE.Plane().setFromNormalAndCoplanarPoint(d, new THREE.Vector3(t.x, t.y, t.z)); }
   const p0 = localRay(e).intersectPlane(plane, new THREE.Vector3());
-  trDrag = { i, mode, plane, start: p0 ? p0.clone() : null, t0: { ...t }, moved: false };
+  trDrag = { i, mode, plane, start: p0 ? p0.clone() : null, t0: { ...t }, moved: false, hRel: Math.max(60, t.z - surfUnder(t.x, t.y).z) };
   if (S.pane === "traj") trRender(); trDraw();
 }, true);
 window.addEventListener("pointermove", e => {
+  if (!trDrag && trMarking && e.target === renderer.domElement && !S.running) hoverPreview(e); else if (!trMarking && hoverG.visible) hoverG.visible = false;
   if (!trDrag) { // cursor de "mãozinha" sobre os pontos
     if (e.target === renderer.domElement && !S.running && trPick3D.length) { const now = performance.now(); if (now - (trDrag && 0 || window.__trHov || 0) > 60) { window.__trHov = now; renderer.domElement.style.cursor = hitMarker(e) !== null ? "grab" : (trMarking ? "crosshair" : ""); } }
     return;
@@ -1189,10 +1206,36 @@ window.addEventListener("pointermove", e => {
   const d = pt.clone().sub(trDrag.last || trDrag.start).multiplyScalar(fine); trDrag.last = pt;
   trDrag.raw = trDrag.raw || { x: trDrag.t0.x, y: trDrag.t0.y, z: trDrag.t0.z }; trDrag.fine = fine < 1;
   const stp = +$("trStep").value || 0, q = v => stp ? Math.round(v / stp) * stp : r1(v);
-  if (trDrag.mode === "xy") { trDrag.raw.x += d.x; trDrag.raw.y += d.y; t.x = q(trDrag.raw.x); t.y = q(trDrag.raw.y); t.z = trDrag.t0.z; snapPoint(t); }
+  if (trDrag.mode === "xy" && fine === 1) { // segue o cursor sobre a superfície (esteira, mesa, palete, peças, chão)
+    const h = surfaceHit(e);
+    if (h) {
+      if (t.acao === "pegar" && h.part && $("trSnap").checked) { t.x = r1(h.part.position.x); t.y = r1(h.part.position.y); t.z = r1(h.part.position.z); t.a = Math.round(h.part.rotation.z * RL.R2D); }
+      else { t.x = q(h.w.x); t.y = q(h.w.y);
+        if (!$("trSnap").checked) t.z = trDrag.t0.z;
+        else if (t.acao === "soltar") t.z = r1(surfUnder(t.x, t.y).z + 30);
+        else if (t.acao === "passar") t.z = r1(surfUnder(t.x, t.y).z + trDrag.hRel);
+        else snapPoint(t); }
+      trDrag.raw = { x: t.x, y: t.y, z: t.z };
+    }
+  } else if (trDrag.mode === "xy") { trDrag.raw.x += d.x; trDrag.raw.y += d.y; t.x = q(trDrag.raw.x); t.y = q(trDrag.raw.y); t.z = trDrag.t0.z; snapPoint(t); }
   else { trDrag.raw.z = Math.max(0, trDrag.raw.z + d.z); t.z = q(trDrag.raw.z); }
   renderer.domElement.style.cursor = "grabbing"; trDraw(); trLiveRow(trDrag.i);
 });
+// prévia de onde o próximo clique vai criar o ponto
+const hoverG = new THREE.Group(); hoverG.visible = false; root.add(hoverG); let hovT = 0;
+function hoverPreview(e) {
+  const now = performance.now(); if (now - hovT < 35) return; hovT = now;
+  clearGroup(hoverG); const h = surfaceHit(e); if (!h || hitMarker(e) !== null) { hoverG.visible = false; return; }
+  const T = cur().trajeto || [], sel = $("trNext").value, pend = T.filter(t => t.acao === "pegar").length > T.filter(t => t.acao === "soltar").length;
+  const ac = h.part ? (sel === "auto" ? (pend ? "soltar" : "pegar") : sel) : (sel === "auto" ? (pend ? "soltar" : "passar") : sel);
+  const c = TRC[ac], x = h.part ? h.part.position.x : h.w.x, y = h.part ? h.part.position.y : h.w.y, sz = surfUnder(x, y).z;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(16, 26, 32), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthTest: false })); ring.renderOrder = 22; ring.position.set(x, y, sz + 2); hoverG.add(ring);
+  const cross = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x - 40, y, sz + 2), new THREE.Vector3(x + 40, y, sz + 2), new THREE.Vector3(x, y - 40, sz + 2), new THREE.Vector3(x, y + 40, sz + 2)]), new THREE.LineBasicMaterial({ color: c, depthTest: false })); cross.renderOrder = 22; hoverG.add(cross);
+  if (h.part && ac === "pegar") { const d = h.part.userData.size || [50, 50, 50], ed = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(d[0] + 10, d[1] + 10, d[2] + 10)), new THREE.LineBasicMaterial({ color: 0xffe14d, depthTest: false })); ed.renderOrder = 22; ed.position.copy(h.part.position); ed.rotation.z = h.part.rotation.z; hoverG.add(ed); }
+  if (ac === "soltar") { const s3 = heldSize(T.length), g = new THREE.BoxGeometry(s3[0], s3[1], s3[2]), gm = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.25, depthWrite: false })); gm.position.set(x, y, sz + s3[2] / 2); hoverG.add(gm); }
+  label(hoverG, `clique: ${TRN[ac].toLowerCase()} · X ${Math.round(x)} Y ${Math.round(y)}`, [x, y, sz + 70], "lbl", "#" + c.toString(16).padStart(6, "0"), "ponto");
+  hoverG.visible = true;
+}
 function trLiveRow(i) { const row = document.querySelector(`#trList [data-ti="${i}"]`), t = cur().trajeto[i]; if (!row || !t) return; row.querySelectorAll("input[data-tf]").forEach(inp => inp.value = r1(t[inp.dataset.tf] || 0)); }
 window.addEventListener("pointerup", () => {
   if (!trDrag) return; const dr = trDrag; trDrag = null; controls.enabled = true; renderer.domElement.style.cursor = "";
@@ -1212,6 +1255,12 @@ $("trSide").onclick = () => { const t = selPt() || { x: 400, y: 0, z: 150 }; con
 $("trFocus").onclick = () => { const t = selPt(); if (!t) return toast("Selecione um ponto"); camOn(t, [0.45, 0.4, 0.45]); };
 document.addEventListener("keydown", e => { if (S.pane === "traj" && (e.key === "f" || e.key === "F") && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) $("trFocus").click(); });
 $("trGuides").onchange = () => trDraw();
+$("trNudge").addEventListener("click", e => {
+  const b = e.target.closest("[data-nd]"); if (!b || S.running) return; const T = cur().trajeto || []; if (!T.length) return toast("Marque um ponto primeiro");
+  if (trSel < 0 || !T[trSel]) trSel = T.length - 1; const t = T[trSel], [k, sg] = b.dataset.nd.split(","), st = k === "a" ? 90 : +$("trNStep").value;
+  t[k] = r1((t[k] || 0) + (+sg) * st); if (k === "z") t.z = Math.max(0, t.z);
+  trRender(); trDraw(); clearTimeout(window.__trNd); window.__trNd = setTimeout(trChanged, 350);
+});
 $("trModeXY").onclick = () => { trDragMode = "xy"; $("trModeXY").classList.add("on"); $("trModeZ").classList.remove("on"); };
 $("trModeZ").onclick = () => { trDragMode = "z"; $("trModeZ").classList.add("on"); $("trModeXY").classList.remove("on"); };
 

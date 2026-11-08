@@ -285,6 +285,11 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
 .trp .st{grid-column:2/-1;font-size:11.5px}
 .trinfo{position:absolute;left:10px;top:46px;display:none;background:rgba(15,18,22,.9);color:#dce2ea;border:1px solid #353e4a;border-left:3px solid var(--acc);border-radius:6px;padding:8px 10px;font:12.5px/1.55 var(--mono);pointer-events:none;max-width:360px}
 .trinfo .tm{color:#ffb066;font-size:11px} .trinfo .tk{color:#8b96a5;font:11px/1.4 var(--sans);margin-top:4px}
+.nudge{border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:6px 0;background:var(--panel2)}
+.nudge .nh{font-size:12px;color:var(--mut);margin-bottom:4px} .nudge .nh select{padding:1px 4px;font-size:12px}
+.nudge .ng{display:flex;gap:10px;align-items:center}
+.nudge .dpad{display:grid;grid-template-columns:repeat(3,58px);gap:3px} .nudge .zcol{display:flex;flex-direction:column;gap:3px;flex:1}
+.nudge button{padding:3px 0;font:600 11.5px var(--mono)} .nudge .mid{text-align:center;font-size:10.5px;color:var(--mut);align-self:center}
 </style>
 </head>
 <body>
@@ -365,6 +370,9 @@ body.beginner #jog button[data-k^="A"],body.beginner #jog button[data-k^="B"],bo
         <div class="row"><button class="pri" id="trMark">🖱 Marcar pontos: desligado</button></div>
         <div class="row"><button class="sm" id="trTop" title="Câmera de cima, sobre o ponto: melhor para posicionar X e Y">⬇ Ver de cima</button><button class="sm" id="trSide" title="Câmera de lado: melhor para ajustar a altura">➡ Ver de lado</button><button class="sm" id="trFocus" title="Aproxima a câmera do ponto selecionado (tecla F)">🔍 Focar no ponto</button></div>
         <div class="row"><label>Passo do arraste</label><select id="trStep"><option value="0">livre</option><option value="1">1 mm</option><option value="5" selected>5 mm</option><option value="10">10 mm</option><option value="25">25 mm</option><option value="50">50 mm</option></select><label style="margin-left:6px"><input type="checkbox" id="trGuides" checked> Grade e guias</label></div>
+        <div class="nudge" id="trNudge"><div class="nh">Ajuste fino do ponto selecionado <select id="trNStep"><option>1</option><option selected>5</option><option>10</option><option>50</option></select> mm</div>
+          <div class="ng"><div class="dpad"><span></span><button data-nd="x,1" title="Para longe da base">X+ ↑</button><span></span><button data-nd="y,1" title="Esquerda (vista de cima)">← Y+</button><span class="mid">ponto</span><button data-nd="y,-1" title="Direita (vista de cima)">Y− →</button><span></span><button data-nd="x,-1" title="Para perto da base">X− ↓</button><span></span></div>
+          <div class="zcol"><button data-nd="z,1" title="Subir">Z+ ⤒ subir</button><button data-nd="z,-1" title="Descer">Z− ⤓ descer</button><button data-nd="a,1" title="Girar a garra +90°">⟳ girar 90°</button></div></div></div>
         <div class="row"><label>Arrastar no 3D</label><div class="nivel"><button id="trModeXY" class="on">Posição (X Y)</button><button id="trModeZ">Altura (Z)</button></div><label style="margin-left:6px"><input type="checkbox" id="trSnap" checked> Grudar na peça / superfície</label></div>
         <div class="row"><label>Próximo ponto</label><select id="trNext"><option value="auto">Automático (peça = pegar, superfície = soltar)</option><option value="pegar">Pegar</option><option value="soltar">Soltar</option><option value="passar">Passar por (desvio)</option></select></div>
         <div id="trList"></div>

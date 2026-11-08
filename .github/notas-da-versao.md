@@ -11,7 +11,14 @@ Na primeira vez, o Mac avisa que não consegue verificar o Korum, porque ele nã
 
 **Mac com processador Intel** — mesmo procedimento com `Korum-Mac-Intel.zip`.
 
-## Novidades da versão 1.6.1 — Posicionar pontos com mais precisão
+## Novidades da versão 1.7.0 — Posicionar pontos ficou mais fácil
+- **O ponto segue o mouse sobre a superfície:** ao arrastar, ele vai exatamente para onde o cursor aponta na esteira, mesa, palete, peça ou chão (antes andava num plano invisível na altura do ponto). Segure Ctrl para o modo de precisão
+- **Prévia antes de clicar:** no modo Marcar pontos, um alvo colorido segue o mouse e diz o que o clique vai fazer ("clique: soltar · X 300 Y −525"), com a peça-fantasma no lugar
+- **Fantasma da peça:** cada ponto de soltar mostra uma caixa transparente exatamente onde a peça vai ficar (já girada); o ponto de pegar contorna em amarelo a peça que será pega
+- **Ajuste fino por botões:** X+/X−, Y+/Y−, subir/descer e girar 90°, com passo de 1, 5, 10 ou 50 mm
+- Rótulos mais claros: "pega aqui", "solta aqui", "passa aqui"; o painel avisa se o ponto de pegar não tem peça
+
+## Versão 1.6.1 — Posicionar pontos com mais precisão
 - **Corrigido:** a tela cheia (⛶) ficava vazia. Agora mostra o simulador; Esc ou ⛶ volta
 - **Pegar o ponto ficou mais fácil:** o ponto é escolhido pela proximidade do cursor na tela e aparece sempre, mesmo atrás de peças e objetos (com um halo branco)
 - **Precisão:** segure **Ctrl** ao arrastar para mover 5× mais devagar; **passo do arraste** (livre, 1, 5, 10, 25 ou 50 mm, padrão 5 mm)
